@@ -1,17 +1,17 @@
 /**
  * Application entry point.
  */
-import 'dotenv/config';
+
 import { create_app } from './server.js';
 import { ProviderRegistry } from './providers/registry.js';
+import { GoogleTtsProvider } from './providers/google.js';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
 function main(): void {
   const registry = new ProviderRegistry();
 
-  // TODO: Register actual TTS providers here
-  // registry.register(new SomeProvider());
+  registry.register(new GoogleTtsProvider());
 
   const app = create_app(registry);
 
