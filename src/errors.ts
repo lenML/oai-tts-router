@@ -42,12 +42,7 @@ export function openai_error_from_zod(error: ZodError): OpenAiError {
 }
 
 /** Express error handling middleware */
-export function error_handler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-): void {
+export function error_handler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof OpenAiError) {
     res.status(err.status_code).json(err.to_response());
     return;

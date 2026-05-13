@@ -20,10 +20,7 @@ import type { ProviderRegistry } from '../providers/registry.js';
 const route_path = '/v1/audio/speech';
 
 /** Register audio-related routes */
-export function register_audio_routes(
-  router: Router,
-  registry: ProviderRegistry,
-): void {
+export function register_audio_routes(router: Router, registry: ProviderRegistry): void {
   router.post(route_path, async (req, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
 

@@ -78,9 +78,7 @@ describe('POST /v1/audio/speech', () => {
 
   describe('base validation', () => {
     it('should reject empty body', async () => {
-      const res = await request(app)
-        .post('/v1/audio/speech')
-        .send({});
+      const res = await request(app).post('/v1/audio/speech').send({});
 
       expect(res.status).toBe(400);
       expect(res.body.error.type).toBe('invalid_request_error');
@@ -227,15 +225,13 @@ describe('POST /v1/audio/speech', () => {
     });
 
     it('should pass speed and response_format in extra', async () => {
-      const res = await request(app)
-        .post('/v1/audio/speech')
-        .send({
-          model: 'tts-1',
-          input: 'hello',
-          voice: 'alloy',
-          speed: 1.5,
-          response_format: 'wav',
-        });
+      const res = await request(app).post('/v1/audio/speech').send({
+        model: 'tts-1',
+        input: 'hello',
+        voice: 'alloy',
+        speed: 1.5,
+        response_format: 'wav',
+      });
 
       const body = parse_body(res);
       expect(body.extra).toHaveProperty('speed', 1.5);
@@ -243,14 +239,23 @@ describe('POST /v1/audio/speech', () => {
     });
 
     it('should route to correct provider based on model', async () => {
-      registry.register(new (class implements TtsProvider {
-        readonly name = 'alt';
-        get_models() { return ['tts-alt']; }
-        supports_model(m: string) { return m === 'tts-alt'; }
-        async speak(params: SpeechParams): Promise<SpeechResult> {
-          return { content_type: 'audio/wav', data: Buffer.from(`alt-${params.model}:${params.input}`, 'utf-8') };
-        }
-      })());
+      registry.register(
+        new (class implements TtsProvider {
+          readonly name = 'alt';
+          get_models() {
+            return ['tts-alt'];
+          }
+          supports_model(m: string) {
+            return m === 'tts-alt';
+          }
+          async speak(params: SpeechParams): Promise<SpeechResult> {
+            return {
+              content_type: 'audio/wav',
+              data: Buffer.from(`alt-${params.model}:${params.input}`, 'utf-8'),
+            };
+          }
+        })(),
+      );
 
       const res = await request(app)
         .post('/v1/audio/speech')

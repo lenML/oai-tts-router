@@ -11,8 +11,19 @@ import { tts_request_base } from './schema.js';
 
 /** OpenAI-supported voices (from the official API) */
 export const OPENAI_VOICES = [
-  'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer',
-  'ash', 'ballad', 'coral', 'sage', 'verse', 'marin', 'cedar',
+  'alloy',
+  'echo',
+  'fable',
+  'onyx',
+  'nova',
+  'shimmer',
+  'ash',
+  'ballad',
+  'coral',
+  'sage',
+  'verse',
+  'marin',
+  'cedar',
 ] as const;
 
 /** OpenAI response format values */

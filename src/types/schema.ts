@@ -10,7 +10,8 @@ import { z } from 'zod';
 /** Base TTS request - every request needs at least model and input. */
 export const tts_request_base = z.object({
   model: z.string().min(1, { message: 'The `model` parameter is required.' }),
-  input: z.string()
+  input: z
+    .string()
     .min(1, { message: 'The `input` parameter is required.' })
     .max(4096, { message: 'The `input` parameter must not exceed 4096 characters.' }),
 });

@@ -2,9 +2,10 @@
 
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import eslintPluginPrettier from 'eslint-plugin-prettier';
 
 export default tseslint.config(
-  // Base recommended rules (no project service needed)
+  // Base recommended rules
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   // Type-aware rules for source code only
@@ -20,7 +21,12 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    plugins: {
+      prettier: eslintPluginPrettier,
+    },
     rules: {
+      'prettier/prettier': 'error',
+      // Naming conventions
       '@typescript-eslint/naming-convention': [
         'error',
         { selector: 'default', format: ['snake_case'], leadingUnderscore: 'allow' },
@@ -34,19 +40,20 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       // Express req.body is typed as `any`; we validate with zod anyway
       '@typescript-eslint/no-unsafe-assignment': 'off',
-      quotes: ['error', 'single', { avoidEscape: true }],
       'prefer-const': 'error',
       'no-var': 'error',
       eqeqeq: ['error', 'always', { null: 'ignore' }],
-      'max-len': ['warn', { code: 120, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-  // Test and config files: basic rules only (no project service)
+  // Test and config files: basic rules + prettier only
   {
     files: ['tests/**/*.ts', 'vitest.config.ts'],
+    plugins: {
+      prettier: eslintPluginPrettier,
+    },
     rules: {
-      'quotes': ['error', 'single', { avoidEscape: true }],
+      'prettier/prettier': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },

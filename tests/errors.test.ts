@@ -115,7 +115,12 @@ describe('error_handler', () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({
-      error: { message: 'An unexpected error occurred.', type: 'server_error', param: null, code: null },
+      error: {
+        message: 'An unexpected error occurred.',
+        type: 'server_error',
+        param: null,
+        code: null,
+      },
     });
   });
 });

@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   OPENAI_VOICES,
-
   openai_tts_schema,
   OPENAI_ERROR_TYPE,
   OPENAI_ERROR_CODE,

@@ -1,11 +1,11 @@
 /**
  * Application entry point.
  */
+import 'dotenv/config';
+import { create_app } from './server.js';
+import { ProviderRegistry } from './providers/registry.js';
 
-import { create_app } from "./server.js";
-import { ProviderRegistry } from "./providers/registry.js";
-
-const PORT = parseInt(process.env.PORT ?? "3000", 10);
+const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
 function main(): void {
   const registry = new ProviderRegistry();
