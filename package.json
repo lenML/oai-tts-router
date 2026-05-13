@@ -33,6 +33,7 @@
     "vitest": "^4.1.6"
   },
   "dependencies": {
+    "@andresaya/edge-tts": "^1.8.0",
     "@sefinek/google-tts-api": "^2.1.13",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
