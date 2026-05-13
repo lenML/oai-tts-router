@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TTS Provider abstraction interface.
  * Providers implement TtsProvider to integrate different TTS channels.
  *
@@ -36,6 +36,12 @@ export interface TtsProvider {
   readonly name: string;
 
   /**
+   * Optional human-readable ownership label shown in model metadata.
+   * Defaults to the provider `name` if not set.
+   */
+  readonly owned_by?: string;
+
+  /**
    * Optional zod schema for request validation.
    * If provided, incoming request bodies are validated against this schema
    * before being passed to speak(). The schema should extend the base
@@ -53,6 +59,13 @@ export interface TtsProvider {
    * @param model - Model ID
    */
   supports_model(model: string): boolean;
+
+  /**
+   * Return the list of voice IDs supported by the given model.
+   * Returns an empty array if the model does not use named voices.
+   * @param model - Model ID
+   */
+  get_model_voices?(model: string): string[];
 
   /**
    * Synthesize text to speech.

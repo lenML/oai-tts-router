@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Google Translate TTS provider.
  * Uses @sefinek/google-tts-api to obtain audio URLs from Google Translate,
  * then fetches and returns the audio data with browser-like headers.
@@ -62,6 +62,10 @@ export class GoogleTtsProvider implements TtsProvider {
 
   get_models(): string[] {
     return ['google-translate'];
+  }
+
+  get_model_voices(_model: string): string[] {
+    return [];
   }
 
   supports_model(model: string): boolean {

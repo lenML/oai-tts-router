@@ -1,7 +1,7 @@
 /**
  * Application entry point.
  */
-
+import 'dotenv/config';
 import { create_app } from './server.js';
 import { ProviderRegistry } from './providers/registry.js';
 import { GoogleTtsProvider } from './providers/google.js';
