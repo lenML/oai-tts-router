@@ -1,0 +1,48 @@
+#
+# Docker Compose for oai-tts-router.
+#
+# Production:
+#   docker compose up -d
+#
+# Development (hot-reload via tsx watch):
+#   docker compose --profile dev up -d
+#
+
+services:
+  # ── Production ──────────────────────────────────────────────
+  app:
+    # image: oai-tts-router:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '17777:17777'
+    environment:
+      - PORT=17777
+      # - HTTP_PROXY=http://host.docker.internal:10808
+      # - HTTPS_PROXY=http://host.docker.internal:10808
+    volumes:
+      - models:/app/models
+    restart: unless-stopped
+
+  # ── Development (hot-reload) ────────────────────────────────
+  dev:
+    profiles:
+      - dev
+    # image: oai-tts-router:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '17777:17777'
+    environment:
+      - PORT=17777
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - models:/app/models
+    restart: unless-stopped
+
+volumes:
+  models:
