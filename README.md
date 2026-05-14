@@ -20,7 +20,10 @@ import fs from 'fs';
 import path from 'path';
 import OpenAI from 'openai';
 
-const openai = new OpenAI();
+const openai = new OpenAI({
+  baseURL: 'http://localhost:3000/v1', // 你的服务地址
+  apiKey: 'sk-xxx', // 你配置的 api key ，如果没设置，这里随意填写
+});
 
 const speechFile = path.resolve('./speech.mp3');
 
