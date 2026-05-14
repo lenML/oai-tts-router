@@ -1,5 +1,4 @@
-#
-# Docker Compose for oai-tts-router.
+﻿# Docker Compose for oai-tts-router.
 #
 # Production:
 #   docker compose up -d
@@ -9,23 +8,26 @@
 #
 
 services:
-  # ── Production ──────────────────────────────────────────────
+
+  # Production
   app:
     # image: oai-tts-router:latest
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '17777:17777'
+      - "17777:17777"
     environment:
       - PORT=17777
+      - API_KEY=${API_KEY:-}
+      - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
       # - HTTP_PROXY=http://host.docker.internal:10808
       # - HTTPS_PROXY=http://host.docker.internal:10808
     volumes:
       - models:/app/models
     restart: unless-stopped
 
-  # ── Development (hot-reload) ────────────────────────────────
+  # Development (hot-reload)
   dev:
     profiles:
       - dev
@@ -34,10 +36,12 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - '17777:17777'
+      - "17777:17777"
     environment:
       - PORT=17777
       - NODE_ENV=development
+      - API_KEY=${API_KEY:-}
+      - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
     volumes:
       - .:/app
       - /app/node_modules

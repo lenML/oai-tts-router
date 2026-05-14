@@ -7,6 +7,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { OpenAiErrorBody } from './types/openai.js';
 import { OPENAI_ERROR_TYPE } from './types/openai.js';
 import type { ZodError } from 'zod';
+import { logger } from './utils/logger.js';
 
 /** Custom OpenAI-compatible error */
 export class OpenAiError extends Error {
@@ -44,12 +45,23 @@ export function openai_error_from_zod(error: ZodError): OpenAiError {
 /** Express error handling middleware */
 export function error_handler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   if (err instanceof OpenAiError) {
+    logger.warn('request rejected', {
+      type: err.type,
+      code: err.code,
+      param: err.param,
+      status: err.status_code,
+      message: err.message,
+    });
     res.status(err.status_code).json(err.to_response());
     return;
   }
 
   // Fallback for unexpected errors
-  console.error('Unhandled error:', err);
+  logger.error('unhandled error', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+  });
   const fallback = new OpenAiError(
     'An unexpected error occurred.',
     'server_error',

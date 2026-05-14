@@ -13,6 +13,7 @@ import { error_handler } from '../../src/errors.js';
 import { openai_tts_schema } from '../../src/types/openai.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../../src/types/provider.js';
 import type { z } from 'zod';
+import { init_cache } from '../../src/middleware/cache.js';
 
 /**
  * EchoProvider mirrors back the received params in the response body.
@@ -130,6 +131,75 @@ describe('POST /v1/audio/speech', () => {
     });
   });
 
+  describe('response caching', () => {
+    let registry: ProviderRegistry;
+    let app: Express;
+
+    beforeEach(() => {
+      init_cache('10mb');
+      registry = new ProviderRegistry();
+      registry.register(new EchoProvider());
+      app = build_app(registry);
+    });
+
+    it('should return X-Cache: MISS on first request', async () => {
+      const res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'cache test', voice: 'alloy' });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['x-cache']).toBe('MISS');
+    });
+
+    it('should return X-Cache: HIT on repeated request with same body', async () => {
+      const body = { model: 'tts-1', input: 'repeat me', voice: 'alloy' };
+
+      const res1 = await request(app).post('/v1/audio/speech').send(body);
+      expect(res1.status).toBe(200);
+      expect(res1.headers['x-cache']).toBe('MISS');
+
+      const res2 = await request(app).post('/v1/audio/speech').send(body);
+      expect(res2.status).toBe(200);
+      expect(res2.headers['x-cache']).toBe('HIT');
+    });
+
+    it('should return X-Cache: MISS for different requests', async () => {
+      await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'first', voice: 'alloy' });
+
+      const res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'second', voice: 'alloy' });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['x-cache']).toBe('MISS');
+    });
+
+    it('should return same audio data from cache on HIT', async () => {
+      const body = { model: 'tts-1', input: 'same data', voice: 'alloy' };
+
+      const res1 = await request(app).post('/v1/audio/speech').send(body);
+      const res2 = await request(app).post('/v1/audio/speech').send(body);
+
+      expect((res1.body as Buffer).equals(res2.body as Buffer)).toBe(true);
+    });
+
+    it('should not cache when cache is disabled', async () => {
+      init_cache('0');
+      registry = new ProviderRegistry();
+      registry.register(new EchoProvider());
+      app = build_app(registry);
+
+      const body = { model: 'tts-1', input: 'no cache', voice: 'alloy' };
+      const res1 = await request(app).post('/v1/audio/speech').send(body);
+      const res2 = await request(app).post('/v1/audio/speech').send(body);
+
+      // Both should be MISS since cache is disabled
+      expect(res1.headers['x-cache']).toBe('MISS');
+      expect(res2.headers['x-cache']).toBe('MISS');
+    });
+  });
   describe('provider with schema (EchoProvider)', () => {
     it('should reject missing voice when provider schema requires it', async () => {
       const res = await request(app)
