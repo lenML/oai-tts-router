@@ -144,3 +144,7 @@ vite.config.ts.timestamp-*
 
 demo/
 *.mp3
+*.wav
+*.webm
+
+models/

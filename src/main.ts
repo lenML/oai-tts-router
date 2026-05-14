@@ -7,6 +7,7 @@ import { create_app } from './server.js';
 import { ProviderRegistry } from './providers/registry.js';
 import { GoogleTtsProvider } from './providers/google.js';
 import { EdgeTtsProvider } from './providers/edge-tts.js';
+import { OpenaiFmProvider } from './providers/openai-fm.js';
 
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 
@@ -15,6 +16,7 @@ function main(): void {
 
   registry.register(new GoogleTtsProvider());
   registry.register(new EdgeTtsProvider());
+  registry.register(new OpenaiFmProvider());
 
   const app = create_app(registry);
 

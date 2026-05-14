@@ -21,7 +21,9 @@ vi.mock('@andresaya/edge-tts', () => {
     return {
       getVoices: mockGetVoices,
       synthesize: mockSynthesize,
-      toBuffer: function () { return Buffer.from('mock-mp3-data'); },
+      toBuffer: function () {
+        return Buffer.from('mock-mp3-data');
+      },
     };
   }
 
