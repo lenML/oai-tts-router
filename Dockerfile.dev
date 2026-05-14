@@ -11,6 +11,9 @@ ENV PNPM_HOME="/pnpm" \
 RUN corepack enable
 WORKDIR /app
 
+# cuimp (openai-fm provider) needs bash for curl-impersonate wrapper scripts
+RUN apk add --no-cache bash
+
 # Install dependencies first (layer caching)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 RUN pnpm install --frozen-lockfile

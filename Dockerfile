@@ -28,6 +28,9 @@ RUN pnpm install --prod --frozen-lockfile
 FROM base
 ENV NODE_ENV=production
 
+# cuimp (openai-fm provider) needs bash for curl-impersonate wrapper scripts
+RUN apk add --no-cache bash
+
 # Create models directory for runtime persistence
 RUN mkdir -p /app/models
 
