@@ -79,9 +79,7 @@ export function bearer_auth(req: Request, _res: Response, next: NextFunction): v
 
 /** Express middleware: validates Basic auth password against configured API keys. */
 export function basic_auth(req: Request, res: Response, next: NextFunction): void {
-  if (valid_keys === null) {
-    return next();
-  }
+  if (valid_keys === null) return next();
 
   const auth_header = req.headers.authorization;
   if (!auth_header || !auth_header.startsWith('Basic ')) {

@@ -44,8 +44,8 @@ export function create_app(registry: ProviderRegistry): express.Application {
     res.json({ status: 'ok' });
   });
 
-  // Serve playground with Basic auth
-  app.use(basic_auth, express.static(playground_dir));
+  // Serve playground under /playground with Basic auth
+  app.use('/playground', basic_auth, express.static(playground_dir));
 
   // Error handler
   app.use(error_handler);

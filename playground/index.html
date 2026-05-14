@@ -12,9 +12,10 @@
         "react": "https://esm.sh/react@19.2.4",
         "react/jsx-runtime": "https://esm.sh/react@19.2.4/jsx-runtime",
         "react-dom": "https://esm.sh/react-dom@19.2.4",
-        "react-dom/client": "https://esm.sh/react-dom@19.2.4/client",
-        "zustand": "https://esm.sh/zustand@5.0.3?external=react"
-      }
+     "react-dom/client": "https://esm.sh/react-dom@19.2.4/client",
+     "zustand": "https://esm.sh/zustand@5.0.3?external=react"
+    ,"openai": "https://esm.sh/openai@4.93.0?external=react"
+   }
     }
   </script>
   <script type="module" src="https://esm.sh/webcrypto-liner-shim@1.4.8"></script>
@@ -69,7 +70,8 @@
   <div id="root"></div>  <script type="text/babel">
     const { createRoot } = await import("react-dom/client");
     const React = await import("react");
-    const { create } = await import("zustand");
+   const { create } = await import("zustand");
+    const OpenAI = await import("openai");
 
     const RESPONSE_FORMATS = [
       { value: "mp3", label: "MP3", mime: "audio/mpeg" },
@@ -80,7 +82,7 @@
       { value: "pcm", label: "PCM (16-bit)", mime: "audio/L16; rate=24000; channels=1" },
     ];
 
-    const DEFAULT_BASE_URL = location.origin;
+    const DEFAULT_BASE_URL = location.origin + "/v1";
     const INPUT_MAX_LENGTH = 4096;
     const MAX_HISTORY = 50;
     const WAVEFORM_SAMPLES = 220;
@@ -124,11 +126,14 @@
         wf.push(Math.min(1, (sum / count) * 3));
       }
       return wf;
-    }    const useStore = create((set, get) => {
+   }    const useStore = create((set, get) => {
+      // Restore persisted keys from localStorage
+      const savedApiKey = (() => { try { return localStorage.getItem("tts_playground_api_key") || ""; } catch { return ""; } })();
+      const savedBaseUrl = (() => { try { return localStorage.getItem("tts_playground_base_url") || DEFAULT_BASE_URL; } catch { return DEFAULT_BASE_URL; } })();
       let audioEl = null;
       return {
-        baseUrl: DEFAULT_BASE_URL,
-        apiKey: "",
+        baseUrl: savedBaseUrl,
+        apiKey: savedApiKey,
 
         showHistory: true,
         availableModels: [],
@@ -158,8 +163,8 @@
         generations: [],
         autoplay: true,
 
-        setBaseUrl: (baseUrl) => set({ baseUrl }),
-        setApiKey: (apiKey) => set({ apiKey }),
+        setBaseUrl: (baseUrl) => { try { localStorage.setItem("tts_playground_base_url", baseUrl); } catch {} set({ baseUrl }); },
+        setApiKey: (apiKey) => { try { localStorage.setItem("tts_playground_api_key", apiKey); } catch {} set({ apiKey }); },
 
         toggleHistory: () => set((s) => ({ showHistory: !s.showHistory })),
         setModel: (model) => set((state) => {
@@ -192,70 +197,73 @@
         },
 
         fetchModels: async () => {
-          const { baseUrl } = get();
+          const { baseUrl, apiKey } = get();
           if (!baseUrl.trim()) return;
           set({ modelsLoading: true });
-          try {
-            const url = `${baseUrl.replace(/\/+$/, "")}/v1/models`;
-            const res = await fetch(url);
-            if (!res.ok) { set({ modelsLoading: false }); return; }
-            const data = await res.json();
-            set({ availableModels: data.data ?? [], modelsLoading: false });
+         try {
+            const clientOptions = { baseURL: baseUrl.replace(/\/+$/, ""), dangerouslyAllowBrowser: true };
+            if (apiKey.trim()) clientOptions.apiKey = apiKey.trim();
+            const client = new OpenAI.default(clientOptions);
+            const page = await client.models.list();
+            const models = page.data ?? [];
+            set({ availableModels: models, modelsLoading: false });
+            // Auto-select if current model is no longer in the list
+            const { model } = get();
+            if (!models.find((m) => m.id === model)) {
+              const m = models[0];
+              if (m) {
+                const voices = m.supported_voices ?? [];
+                set({ model: m.id, voice: voices.length > 0 ? voices[0] : "" });
+              }
+            }
           } catch { set({ modelsLoading: false }); }
         },
 
-        submit: async () => {
-          const state = get();
-          if (state.isLoading || !state.input.trim()) return;
+       submit: async () => {
+         const state = get();
+         if (state.isLoading || !state.input.trim()) return;
 
-          if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-          if (audioEl) { audioEl.pause(); audioEl = null; }
+         if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+         if (audioEl) { audioEl.pause(); audioEl = null; }
 
-          set({ isLoading: true, error: null, audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, lastCurl: null, isDecoding: false });
+         set({ isLoading: true, error: null, audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, lastCurl: null, isDecoding: false });
 
-                    const body = { model: state.model, input: state.input, voice: state.voice, response_format: state.responseFormat, speed: state.speed };
+          const body = { model: state.model, input: state.input, voice: state.voice, response_format: state.responseFormat, speed: state.speed };
 
-          // Add instructions if set
-          if (state.instructions.trim()) {
-            body.instructions = state.instructions.trim();
-          }
+         // Add instructions if set
+         if (state.instructions.trim()) {
+           body.instructions = state.instructions.trim();
+         }
 
-          // Merge extra JSON params
-          if (state.extraJson.trim()) {
-            try {
-              const parsed = JSON.parse(state.extraJson);
-              Object.assign(body, parsed);
-            } catch {
-              // Invalid JSON is silently ignored
-            }
-          }
+         // Merge extra JSON params
+         if (state.extraJson.trim()) {
+           try {
+             const parsed = JSON.parse(state.extraJson);
+             Object.assign(body, parsed);
+           } catch {
+             // Invalid JSON is silently ignored
+           }
+         }
 
-          const base = state.baseUrl.replace(/\/+$/, "");
-          const url = `${base}/v1/audio/speech`;
-          const h = [`-H "Content-Type: application/json"`];
-          if (state.apiKey.trim()) h.push(`-H "Authorization: Bearer ${state.apiKey.trim()}"`);
-          const curlCmd = `curl ${url} \\\n  ${h.join(" \\\n  ")} \\\n  -d '${JSON.stringify(body, null, 2)}'`;
-          set({ lastCurl: curlCmd });
+          // Build equivalent curl for reference
+         const base = state.baseUrl.replace(/\/+$/, "");
+         const url = `${base}/audio/speech`;
+         const h = [`-H "Content-Type: application/json"`];
+         if (state.apiKey.trim()) h.push(`-H "Authorization: Bearer ${state.apiKey.trim()}"`);
+         const curlCmd = `curl ${url} \\\n  ${h.join(" \\\n  ")} \\\n  -d '${JSON.stringify(body, null, 2)}'`;
+         set({ lastCurl: curlCmd });
 
-          try {
-            const headers = { "Content-Type": "application/json" };
-            if (state.apiKey.trim()) headers["Authorization"] = `Bearer ${state.apiKey.trim()}`;
-            const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-            const contentType = response.headers.get("Content-Type") || "";
+          // Use OpenAI SDK to make the request (properly respects apiKey & baseURL)
+        try {
+            const clientOptions = { baseURL: base, dangerouslyAllowBrowser: true };
+            if (state.apiKey.trim()) clientOptions.apiKey = state.apiKey.trim();
+            const client = new OpenAI.default(clientOptions);
 
-            if (!response.ok) {
-              let msg = `HTTP ${response.status}`;
-              try {
-                const ed = await response.json();
-                msg = ed.error?.message || ed.message || msg;
-              } catch {
-                const txt = await response.text();
-                if (txt) msg = txt;
-              }
-              set({ error: msg, isLoading: false }); return;
-            }
+            const speechResponse = await client.audio.speech.create(body);
 
-            const blob = await response.blob();
+            const contentType = speechResponse.headers?.get?.("content-type") || "";
+
+            const blob = await speechResponse.blob();
             const audioUrl = URL.createObjectURL(blob);
             set({ isDecoding: true, contentType });
 
@@ -272,7 +280,8 @@
               if (get().autoplay) get().play();
             }
           } catch (err) {
-            set({ error: `Network error: ${err instanceof Error ? err.message : String(err)}`, isLoading: false });
+            const msg = err instanceof Error ? err.message : String(err);
+            set({ error: msg, isLoading: false });
           }
         },
 
