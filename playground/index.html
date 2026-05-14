@@ -161,7 +161,12 @@
         setApiKey: (apiKey) => set({ apiKey }),
 
         toggleHistory: () => set((s) => ({ showHistory: !s.showHistory })),
-        setModel: (model) => set({ model }),
+        setModel: (model) => set((state) => {
+          // Auto-select the first supported voice for the new model.
+          const m = state.availableModels.find((m) => m.id === model);
+          const voices = m?.supported_voices ?? [];
+          return { model, voice: voices.length > 0 ? voices[0] : "" };
+        }),
         setVoice: (voice) => set({ voice }),
         setSpeed: (speed) => set({ speed }),
         setResponseFormat: (fmt) => set({ responseFormat: fmt }),
@@ -239,8 +244,13 @@
 
             if (!response.ok) {
               let msg = `HTTP ${response.status}`;
-              try { const ed = await response.json(); msg += `: ${ed.error?.message || ed.message || ""}`; }
-              catch { const txt = await response.text(); if (txt) msg += `: ${txt}`; }
+              try {
+                const ed = await response.json();
+                msg = ed.error?.message || ed.message || msg;
+              } catch {
+                const txt = await response.text();
+                if (txt) msg = txt;
+              }
               set({ error: msg, isLoading: false }); return;
             }
 
@@ -253,7 +263,7 @@
               const audioBuffer = await decodeAudioBuffer(arrayBuffer);
               const waveformData = extractWaveform(audioBuffer);
               const duration = audioBuffer.duration;
-              const gen = { id: Date.now(), model: state.model, voice: state.voice || "—", input: state.input, audioUrl, waveformData, duration, contentType, createdAt: new Date().toISOString() };
+              const gen = { id: Date.now(), model: state.model, voice: state.voice || "-", input: state.input, audioUrl, waveformData, duration, contentType, createdAt: new Date().toISOString() };
               set((s) => ({ audioUrl, waveformData, duration, isDecoding: false, isLoading: false, isPlaying: false, currentTime: 0, playProgress: 0, generations: [gen, ...s.generations].slice(0, MAX_HISTORY) }));
               if (get().autoplay) get().play();
             } catch {
@@ -642,11 +652,52 @@
       );
     }
 
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, info) {
+        console.error("Playground crashed:", error, info);
+      }
+      render() {
+        if (this.state.hasError) {
+          return React.createElement("div", {
+            style: {
+              height: "100vh", display: "flex", alignItems: "center",
+              justifyContent: "center", flexDirection: "column",
+              background: "#0f0f0f", color: "#e5e7eb", padding: "24px",
+              textAlign: "center",
+            }
+          },
+            React.createElement("div", { style: { fontSize: "32px", marginBottom: "12px" } }, "\u26A0"),
+            React.createElement("h2", { style: { fontSize: "18px", fontWeight: 600, marginBottom: "8px" } }, "Something went wrong"),
+            React.createElement("p", { style: { fontSize: "13px", color: "#9ca3af", marginBottom: "8px", maxWidth: "400px" } },
+              this.state.error?.message || "An unexpected error occurred."
+            ),
+            React.createElement("button", {
+              onClick: () => { this.setState({ hasError: false, error: null }); window.location.reload(); },
+              style: {
+                marginTop: "16px", padding: "8px 20px", background: "#10b981",
+                color: "white", border: "none", borderRadius: "6px",
+                fontSize: "14px", fontWeight: 600, cursor: "pointer",
+              }
+            }, "Reload")
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     function App() { const { showHistory, fetchModels, audioUrl, duration, currentTime, isPlaying, waveformData, seek, isDecoding, isLoading } = useStore();
 
       React.useEffect(() => { fetchModels(); }, []);
 
       return (
+        <ErrorBoundary>
         <div class="h-screen flex flex-col bg-[#0f0f0f]">
           <TopNav />
           <div class="flex flex-1 overflow-hidden">
@@ -673,6 +724,7 @@
           </div>
           <ErrorToast />
         </div>
+        </ErrorBoundary>
       );
     }
 
