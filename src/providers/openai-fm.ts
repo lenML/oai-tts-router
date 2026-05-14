@@ -177,7 +177,7 @@ export class OpenaiFmProvider implements TtsProvider {
 
             return {
               content_type: FM_FORMAT_TO_MIME[detected_format] ?? FM_FORMAT_TO_MIME[fm_format],
-              data: Buffer.from(response.rawBody as ArrayBuffer),
+              data: Buffer.from(response.rawBody),
             };
           }
 
