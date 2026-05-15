@@ -33,6 +33,8 @@ docker compose up -d
 
 启动之后看 [`http://localhost:17777/playground/`](http://localhost:17777/playground/) (端口换成你配置的)
 
+鉴权：如果配置了 apikey ，开启 playground 会弹窗用户名密码，其中用户名随便填，密码填 apikey
+
 ## Dev
 
 ```bash
