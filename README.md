@@ -17,13 +17,13 @@ docker compose up -d
 
 ## Provider
 
-| model | 后端 | 文档 |
-| --- | --- | --- |
-| `google-translate` | Google Translate TTS | [docs](/docs/providers/google-translate.md) |
-| `edge-tts` | Edge TTS | [docs](/docs/providers/edge-tts.md) |
-| `openai-fm-tts` | OpenAI.fm | [docs](/docs/providers/openai-fm.md) |
-| `grok-console-tts` | x.ai Console | [docs](/docs/providers/grok-console-tts.md) |
-| `gemini-tts` | Google Cloud TTS (Gemini-TTS) | [docs](/docs/providers/gemini-tts.md) |
+| model              | 后端                          | 简介                                                                 | 文档                                        |
+| ------------------ | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| `google-translate` | Google Translate TTS          | 低质量，极速，无鉴权，IP敏感                                         | [docs](/docs/providers/google-translate.md) |
+| `edge-tts`         | Edge TTS                      | 中质量，无鉴权，IP不敏感                                             | [docs](/docs/providers/edge-tts.md)         |
+| `openai-fm-tts`    | OpenAI.fm                     | 中上质量，无鉴权，IP敏感，有限速                                     | [docs](/docs/providers/openai-fm.md)        |
+| `grok-console-tts` | x.ai Console                  | 高质量，有鉴权，IP敏感，速度很快，应该有限速但是额度很高             | [docs](/docs/providers/grok-console-tts.md) |
+| `gemini-tts`       | Google Cloud TTS (Gemini-TTS) | 超高质量，有鉴权，IP敏感，速度一般，限制文本长度，有限速，有超时中断 | [docs](/docs/providers/gemini-tts.md)       |
 
 ## Config
 
@@ -31,7 +31,7 @@ docker compose up -d
 
 ## Playground
 
-路径 `/playground/`。
+启动之后看 [`http://localhost:17777/playground/`](http://localhost:17777/playground/) (端口换成你配置的)
 
 ## Dev
 
