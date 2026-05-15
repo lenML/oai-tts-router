@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grok Console TTS provider tests.
  * Mocks cuimp to avoid actual network calls.
  */

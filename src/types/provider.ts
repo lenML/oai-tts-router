@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TTS Provider abstraction interface.
  * Providers implement TtsProvider to integrate different TTS channels.
  *

@@ -40,3 +40,4 @@ OpenAI TTS compatible proxy/router. Routes `/v1/audio/speech` to pluggable TTS p
 - Pnpm, ESM, `.js` import extensions (NodeNext).
 - Zod v4: `ZodError.issues` (not `.errors`).
 - Express 5 catches async route rejections automatically.
+ - File encoding: always write files as UTF-8 without BOM (`utf8NoBOM`). Do NOT write UTF-8 with BOM or UTF-16.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LRU response cache for TTS requests.
  *
  * If the same request body is received within the cache lifetime,

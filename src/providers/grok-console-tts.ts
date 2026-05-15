@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grok Console TTS provider.
  * Uses cuimp to impersonate Chrome 146 TLS fingerprint and calls
  * the x.ai Console Playground TTS endpoint for speech synthesis.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Google Translate TTS provider.
  * Uses @sefinek/google-tts-api to obtain audio URLs from Google Translate,
  * then fetches and returns the audio data with browser-like headers.

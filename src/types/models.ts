@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Model listing types for the /v1/models endpoint.
  */
 

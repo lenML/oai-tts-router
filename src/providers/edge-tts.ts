@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Edge TTS provider.
  * Uses @andresaya/edge-tts to synthesize speech via Microsoft Edge TTS service.
  *

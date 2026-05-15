@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TTS Provider registry.
  * Manages all registered providers and looks up the right provider by model.
  */

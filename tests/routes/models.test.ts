@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Models route tests.
  * Tests GET /v1/models and GET /v1/models/:model.
  */

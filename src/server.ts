@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Express app creation and configuration.
  * Providers can be registered before creating the app.
  */

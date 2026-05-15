@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Edge TTS provider tests.
  * Uses vi.mock to avoid actual Edge TTS network calls.
  */
