@@ -15,6 +15,9 @@
     },
     "grok-console-tts": {
       "cookies": ["sso=sso-token-value;"]
+    },
+    "gemini-tts": {
+      "tokens": ["your-recaptcha-token-here"]
     }
   },
   "default_params": {
@@ -29,6 +32,11 @@
       "voice": "eve",
       "codec": "mp3",
       "language": "en"
+    },
+    "gemini-tts": {
+      "voice": "Kore",
+      "encoding": "LINEAR16",
+      "language": "en-us"
     }
   }
 }
