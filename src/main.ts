@@ -10,6 +10,7 @@ import { ProviderRegistry } from './providers/registry.js';
 import { GoogleTtsProvider } from './providers/google.js';
 import { EdgeTtsProvider } from './providers/edge-tts.js';
 import { OpenaiFmProvider } from './providers/openai-fm.js';
+import { GrokTtsProvider } from './providers/grok-console-tts.js';
 import { init_auth } from './middleware/auth.js';
 import { init_cache } from './middleware/cache.js';
 import { logger } from './utils/logger.js';
@@ -30,6 +31,7 @@ function main(): void {
   registry.register(new GoogleTtsProvider(config.providers?.['google-translate']));
   registry.register(new EdgeTtsProvider());
   registry.register(new OpenaiFmProvider(config.providers?.['openai-fm']));
+  registry.register(new GrokTtsProvider(config.providers?.['grok-console-tts']));
 
   logger.info('providers registered', {
     providers: registry.get_provider_names(),

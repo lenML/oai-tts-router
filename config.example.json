@@ -1,4 +1,4 @@
-{
+﻿{
   "port": 4567,
   "log_level": "info",
   "api_keys": ["sk-1234"],
@@ -12,6 +12,9 @@
   "providers": {
     "openai-fm": {
       "base_url": "https://www.openai.fm"
+    },
+    "grok-console-tts": {
+      "cookies": ["sso=sso-token-value;"]
     }
   },
   "default_params": {
@@ -21,6 +24,11 @@
     },
     "edge-tts": {
       "voice": "en-US-JennyNeural"
+    },
+    "grok-console-tts": {
+      "voice": "eve",
+      "codec": "mp3",
+      "language": "en"
     }
   }
 }
