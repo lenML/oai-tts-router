@@ -431,11 +431,11 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 
 ## 内置模型
 
-| model              | 后端                 | 说明                                                             |
-| ------------------ | -------------------- | ---------------------------------------------------------------- |
-| `google-translate` | Google Translate TTS | 极速生成，自动识别语言，可用 extra 参数指定语音，没有 voice 切换 |
-| `edge-tts`         | Edge TTS             | 320+ 种声音，支持 `rate`/`pitch`/`volume` 参数                   |
-| `openai-fm-tts`    | OpenAI.fm            | 与 OpenAI TTS API 相同的 11 种声音                               |
+| model              | 后端                    | 说明                                                                              |
+| ------------------ | ----------------------- | --------------------------------------------------------------------------------- |
+| `google-translate` | Google Translate TTS    | 极速生成，自动识别语言，可用 extra 参数指定语音，没有 voice 切换                  |
+| `edge-tts`         | Edge TTS                | 320+ 种声音，支持 `rate`/`pitch`/`volume` 参数                                    |
+| `openai-fm-tts`    | OpenAI.fm               | 与 OpenAI TTS API 相同的 11 种声音                                                |
 | `grok-console-tts` | x.ai Console Playground | 需要配置 cookies，支持 eve/ara/rex/sal/leo 音色，支持多 cookie 随机切换与自动重试 |
 
 每个模型支持的 `voice` 通过 `GET /v1/models` 获取。
@@ -446,7 +446,7 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 
 **Cookie 获取方式**：
 
-1. 打开 https://console.x.ai/playground/voice/text-to-speech 并登录
+1. 打开 https://console.x.ai/playground/voice/text-to-speech （可以不登陆，也可以登陆获取高limit sso）
 2. F12 → Network → 找到 /v1/tts 请求 → 复制请求 Cookie
 3. 配置到 config.json：
 
@@ -454,7 +454,7 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 "providers": {
   "grok-console-tts": {
     "cookies": [
-      "sso=xxx; sso-rw=yyy; __cf_bm=zzz"
+      "sso=xxx; sso-rw=yyy;" // 主要是需要 sso 其他也可以带上
     ]
   }
 }
@@ -464,13 +464,12 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 
 **支持的参数**：
 
-| extra 参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| oice | string | eve | 音色，可选 eve / ara / rex / sal / leo |
-| codec | string | mp3 | 编码，可选 mp3 / pcm / ulaw / opus |
-| language | string | en | 语言代码 |
-| sample_rate | number | 24000 | 采样率 (Hz) |
-
+| extra 参数  | 类型   | 默认值 | 说明                                   |
+| ----------- | ------ | ------ | -------------------------------------- |
+| voice       | string | eve    | 音色，可选 eve / ara / rex / sal / leo |
+| codec       | string | mp3    | 编码，可选 mp3 / pcm / ulaw / opus     |
+| language    | string | en     | 语言代码                               |
+| sample_rate | number | 24000  | 采样率 (Hz)                            |
 
 ## 鉴权
 
