@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Grok Console TTS provider tests.
  * Mocks cuimp to avoid actual network calls.
  */
@@ -278,6 +278,45 @@ describe('GrokTtsProvider', () => {
 
       const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
       expect(call_body.text_normalization).toBe(true);
+    });
+
+    it('should use per-request cookie from extra when provided', async () => {
+      mock_success(Buffer.from('audio'));
+      await provider.speak({
+        model: 'grok-console-tts',
+        input: 'Hello',
+        extra: { cookie: 'req-cookie=val' },
+      });
+      const headers = mock_request.mock.calls[0][0].headers;
+      expect(headers.cookie).toBe('req-cookie=val');
+    });
+
+    it('should skip retry when using per-request cookie', async () => {
+      mock_request.mockResolvedValue({
+        status: 429,
+        headers: { 'content-type': 'text/html' },
+        rawBody: Buffer.from('rate limited'),
+      });
+
+      await expect(
+        provider.speak({
+          model: 'grok-console-tts',
+          input: 'Hello',
+          extra: { cookie: 'req-cookie=val' },
+        }),
+      ).rejects.toThrow('grok-console-tts returned 429');
+      expect(mock_request).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fall back to config cookie when no per-request cookie given', async () => {
+      mock_success(Buffer.from('audio'));
+      await provider.speak({
+        model: 'grok-console-tts',
+        input: 'Hello',
+        extra: {},
+      });
+      const headers = mock_request.mock.calls[0][0].headers;
+      expect(headers.cookie).toBe('sso=abc; sso-rw=def');
     });
   });
 

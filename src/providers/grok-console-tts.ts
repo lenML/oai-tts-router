@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Grok Console TTS provider.
  * Uses cuimp to impersonate Chrome 146 TLS fingerprint and calls
  * the x.ai Console Playground TTS endpoint for speech synthesis.
@@ -32,6 +32,7 @@ const grok_tts_schema = tts_request_base.extend({
   codec: z.enum(['mp3', 'pcm', 'ulaw', 'opus']).optional(),
   language: z.string().optional(),
   sample_rate: z.number().int().positive().optional(),
+  cookie: z.string().optional(),
 });
 
 // -- Constants --
@@ -108,9 +109,11 @@ export class GrokTtsProvider implements TtsProvider {
     const sample_rate = (params.extra['sample_rate'] as number | undefined) ?? 24000;
 
     const request = build_request_payload(params.input, voice, codec, language, sample_rate);
-    const cookie = ensure_cookie(this.cookies);
+    const req_cookie = params.extra['cookie'] as string | undefined;
+    const cookie = req_cookie ?? ensure_cookie(this.cookies);
+    const max_retries = req_cookie ? 0 : 3;
 
-    return retry_with_backoff(3, cookie, {
+    return retry_with_backoff(max_retries, cookie, {
       do_attempt: async (current_cookie, is_last_attempt) => {
         const response = await do_tts_request(
           request.body_str,
@@ -240,7 +243,7 @@ type AttemptResult = SpeechResult | { retry: true };
 
 interface RetryConfig {
   do_attempt: (cookie: string, is_last_attempt: boolean) => Promise<AttemptResult>;
-  pick_other_cookie: (exclude: string) => string;
+  pick_other_cookie?: (exclude: string) => string;
 }
 
 async function retry_with_backoff(
@@ -253,7 +256,9 @@ async function retry_with_backoff(
   for (let attempt = 0; attempt <= max_retries; attempt++) {
     if (attempt > 0) {
       await sleep(Math.pow(2, attempt) * 1000 + Math.random() * 500);
-      cookie = config.pick_other_cookie(cookie);
+      if (config.pick_other_cookie) {
+        cookie = config.pick_other_cookie(cookie);
+      }
     }
 
     try {

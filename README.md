@@ -1,4 +1,4 @@
-<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
+﻿<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
 
 # oai-tts-router
 
@@ -470,6 +470,22 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 | codec       | string | mp3    | 编码，可选 mp3 / pcm / ulaw / opus     |
 | language    | string | en     | 语言代码                               |
 | sample_rate | number | 24000  | 采样率 (Hz)                            |
+
+**运行时指定 Cookie（可选）**：
+
+如果不想在 config.json 中配置全局 cookie，也可以在每次请求时通过 cookie 参数传入：
+
+```json
+{
+  "model": "grok-console-tts",
+  "input": "Hello",
+  "voice": "eve",
+  "cookie": "sso=xxx; sso-rw=yyy"
+}
+```
+
+注意：使用 cookie 参数时会直接使用该值作为请求 Cookie，不会使用系统配置，也不触发重试和 cookie 轮换。
+
 
 ## 鉴权
 
