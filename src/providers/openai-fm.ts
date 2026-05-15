@@ -78,6 +78,12 @@ export class OpenaiFmProvider implements TtsProvider {
   readonly owned_by = 'openai-fm';
   request_schema = openai_fm_schema;
 
+  private base_url: string;
+
+  constructor(config?: Record<string, unknown>) {
+    this.base_url = (config?.base_url as string | undefined) ?? DEFAULT_BASE_URL;
+  }
+
   get_models(): string[] {
     return ['openai-fm-tts'];
   }
@@ -146,8 +152,7 @@ export class OpenaiFmProvider implements TtsProvider {
         form_body.append('prompt', instructions);
       }
 
-      const base_url = process.env['OPENAI_FM_BASE_URL'] ?? DEFAULT_BASE_URL;
-      const url = `${base_url.replace(/\/+$/, '')}/api/generate`;
+      const url = `${this.base_url.replace(/\/+$/, '')}/api/generate`;
 
       const headers: Record<string, string> = { ...BROWSER_HEADERS };
       headers['Content-Type'] = 'application/x-www-form-urlencoded';

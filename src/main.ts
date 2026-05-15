@@ -3,6 +3,8 @@
  */
 
 import 'dotenv/config';
+import { load_config } from './config.js';
+import { set_log_level } from './utils/logger.js';
 import { create_app } from './server.js';
 import { ProviderRegistry } from './providers/registry.js';
 import { GoogleTtsProvider } from './providers/google.js';
@@ -12,18 +14,22 @@ import { init_auth } from './middleware/auth.js';
 import { init_cache } from './middleware/cache.js';
 import { logger } from './utils/logger.js';
 
-const PORT = parseInt(process.env.PORT ?? '3000', 10);
-
 function main(): void {
-  // Initialize authentication and caching from environment
-  init_auth(process.env.API_KEY);
-  init_cache(process.env.TTS_CACHE_SIZE);
+  // Load configuration (config.json merged with env vars)
+  const config = load_config();
+
+  // Apply log level from config (env takes priority via load_config)
+  set_log_level(config.log_level);
+
+  // Initialize authentication and caching from config
+  init_auth(config.api_keys.length > 0 ? config.api_keys.join(',') : undefined);
+  init_cache(config.cache?.tts_size);
 
   const registry = new ProviderRegistry();
 
-  registry.register(new GoogleTtsProvider());
+  registry.register(new GoogleTtsProvider(config.providers?.['google-translate']));
   registry.register(new EdgeTtsProvider());
-  registry.register(new OpenaiFmProvider());
+  registry.register(new OpenaiFmProvider(config.providers?.['openai-fm']));
 
   logger.info('providers registered', {
     providers: registry.get_provider_names(),
@@ -32,8 +38,8 @@ function main(): void {
 
   const app = create_app(registry);
 
-  app.listen(PORT, () => {
-    logger.info('server started', { port: PORT });
+  app.listen(config.port, () => {
+    logger.info('server started', { port: config.port });
   });
 }
 

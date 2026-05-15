@@ -60,6 +60,10 @@ export class GoogleTtsProvider implements TtsProvider {
   readonly name = 'google-translate';
   request_schema = google_tts_schema;
 
+  constructor(_config?: Record<string, unknown>) {
+    // Config available for future provider-specific options
+  }
+
   get_models(): string[] {
     return ['google-translate'];
   }

@@ -1,0 +1,26 @@
+{
+  "port": 4567,
+  "log_level": "info",
+  "api_keys": ["sk-1234"],
+  "proxy": {
+    "http": "http://127.0.0.1:10808",
+    "https": "http://127.0.0.1:10808"
+  },
+  "cache": {
+    "tts_size": "100mb"
+  },
+  "providers": {
+    "openai-fm": {
+      "base_url": "https://www.openai.fm"
+    }
+  },
+  "default_params": {
+    "openai-fm-tts": {
+      "voice": "alloy",
+      "response_format": "wav"
+    },
+    "edge-tts": {
+      "voice": "en-US-JennyNeural"
+    }
+  }
+}

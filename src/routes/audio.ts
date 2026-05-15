@@ -13,6 +13,7 @@
 
 import { Router } from 'express';
 import type { Response } from 'express';
+import { load_config } from '../config.js';
 import { tts_request_base } from '../types/schema.js';
 import { openai_error_from_zod } from '../errors.js';
 import type { ProviderRegistry } from '../providers/registry.js';
@@ -25,6 +26,19 @@ const route_path = '/v1/audio/speech';
 export function register_audio_routes(router: Router, registry: ProviderRegistry): void {
   router.post(route_path, async (req, res: Response) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
+
+    // Step 0: Apply default params from config for the requested model
+    const model_hint = body['model'] as string | undefined;
+    if (model_hint) {
+      const defaults = load_config().default_params?.[model_hint];
+      if (defaults) {
+        for (const [key, value] of Object.entries(defaults)) {
+          if (body[key] === undefined) {
+            body[key] = value;
+          }
+        }
+      }
+    }
 
     // Step 1: Validate base fields (model, input)
     const base_result = tts_request_base.safeParse(body);

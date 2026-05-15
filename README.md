@@ -1,4 +1,4 @@
-<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
+﻿<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
 
 # oai-tts-router
 
@@ -9,6 +9,7 @@ a **Free** TTS Router.
 ```bash
 git clone https://github.com/lenML/oai-tts-router.git
 cd oai-tts-router
+cp config.example.json config.json   # 根据你的需要编辑配置
 docker compose up -d
 # 访问 http://localhost:17777/playground/
 ```
@@ -428,31 +429,106 @@ curl http://localhost:17777/v1/models -H "Authorization: Bearer sk-your-api-key"
 
 ## 鉴权
 
-设置 `API_KEY` 环境变量：
+配置 `api_keys`（config.json）或 `API_KEY`（环境变量）：
+
+```json
+// config.json
+"api_keys": ["sk-my-secret-key", "sk-another-key"]
+```
 
 ```
+# .env
 API_KEY=sk-my-secret-key,sk-another-key
 ```
 
 - API 请求：`Authorization: Bearer <key>`
-- Playground：HTTP Basic Auth，密码填任意一个 key （用户名忽略）
-- 不设 `API_KEY`：完全开放
+- Playground：HTTP Basic Auth，密码填任意一个 key（用户名忽略）
+- 不设 api_keys：完全开放
 
 ## 配置
+
+项目使用 **config.json** 作为主要配置文件，同时支持 .env 和环境变量覆盖。
+
+### config.json（主要配置方式）
+
+复制 `config.example.json` 为 `config.json` 然后编辑：
+
+```json
+{
+  "port": 4567,
+  "log_level": "info",
+  "api_keys": ["sk-1234"],
+  "proxy": {
+    "http": "http://127.0.0.1:10808",
+    "https": "http://127.0.0.1:10808"
+  },
+  "cache": {
+    "tts_size": "100mb"
+  },
+  "providers": {
+    "openai-fm": {
+      "base_url": "https://www.openai.fm"
+    }
+  },
+  "default_params": {
+    "openai-fm-tts": {
+      "voice": "alloy",
+      "response_format": "wav"
+    },
+    "edge-tts": {
+      "voice": "en-US-JennyNeural"
+    }
+  }
+}
+```
+
+| 字段             | 类型     | 默认值   | 说明                                         |
+| ---------------- | -------- | -------- | -------------------------------------------- |
+| `port`           | number   | `3000`   | 监听端口                                     |
+| `log_level`      | string   | `"info"` | 日志级别（debug/info/warn/error）            |
+| `api_keys`       | string[] | `[]`     | 鉴权 key 列表，空=无鉴权                     |
+| `proxy.http`     | string   | -        | 出站 HTTP 代理                               |
+| `proxy.https`    | string   | -        | 出站 HTTPS 代理                              |
+| `cache.tts_size` | string   | -        | 响应缓存大小（如 `"100mb"`，空=禁用）        |
+| `providers`      | object   | `{}`     | Provider 特定配置（如 `openai-fm.base_url`） |
+| `default_params` | object   | `{}`     | 每个模型的默认请求参数                       |
+
+### .env / 环境变量（覆盖 config.json）
+
+环境变量优先级高于 config.json。适用于敏感信息（API key）或临时调整：
 
 | 变量             | 默认值 | 说明                           |
 | ---------------- | ------ | ------------------------------ |
 | `PORT`           | `3000` | 监听端口                       |
 | `API_KEY`        | -      | 鉴权 key，逗号分隔             |
 | `TTS_CACHE_SIZE` | `0`    | 缓存大小，如 `100mb`，`0` 禁用 |
+| `LOG_LEVEL`      | `info` | 日志级别                       |
 | `HTTP_PROXY`     | -      | 出站 HTTP 代理                 |
 | `HTTPS_PROXY`    | -      | 出站 HTTPS 代理                |
+| `CONFIG_PATH`    | -      | 自定义 config.json 路径        |
+
+### 默认请求参数（default_params）
+
+为每个模型设置默认请求参数。请求中未提供的字段会自动用默认值填充：
+
+```json
+{
+  "default_params": {
+    "edge-tts": {
+      "voice": "en-US-JennyNeural",
+      "rate": "+10%"
+    }
+  }
+}
+```
+
+上述配置下，请求 `POST /v1/audio/speech` 时若指定 `model: "edge-tts"` 但未传 `voice`，会自动使用 `en-US-JennyNeural`。请求中提供的值始终优先于默认值。
 
 ## Playground
 
 内置网页调试工具，路径 `/playground/`。可切换模型、声音、语速、输出格式，实时试听。
 
-如果配置了 API_KEY 页面受 Basic Auth 保护，密码填 API_KEY ，用户名随便。
+如果配置了 api_keys，页面受 Basic Auth 保护，密码填任意一个 key（用户名忽略）。
 
 ## 本地开发
 
@@ -460,11 +536,22 @@ API_KEY=sk-my-secret-key,sk-another-key
 pnpm install
 pnpm dev      # 热重载
 pnpm build
-pnpm start
+pnpm start    # 启动编译后的版本
 ```
 
-Docker 开发：
+### Docker
 
 ```bash
+# 启动生产容器
+docker compose up -d
+
+# 开发模式（热重载）
 docker compose --profile dev up -d
 ```
+
+Docker 下使用 config.json 的两种方式：
+
+1. **直接挂载** —— 在 docker-compose.yml 中取消 volume 注释，从宿主机挂载 config.json
+2. **仅用环境变量** —— 通过 docker-compose.yml 中的 `environment` 或 `.env` 文件配置，config.json 非必需
+
+Dev 模式下项目目录已挂载到容器内，直接在宿主机创建 `config.json` 即可生效。

@@ -21,11 +21,21 @@ const LEVEL_NUM: Record<Level, number> = {
   error: 3,
 };
 
-const current_level: Level = (() => {
+function get_default_level(): Level {
   const env = process.env.LOG_LEVEL?.toLowerCase() as Level | undefined;
   if (env && env in LEVEL_NUM) return env;
   return process.env.NODE_ENV === 'production' ? 'info' : 'info';
-})();
+}
+
+let current_level: Level = get_default_level();
+
+/** Override the log level at runtime (e.g. after loading config.json). */
+export function set_log_level(level: string): void {
+  const lowered = level.toLowerCase() as Level;
+  if (lowered in LEVEL_NUM) {
+    current_level = lowered;
+  }
+}
 
 function should_log(level: Level): boolean {
   return LEVEL_NUM[level] >= LEVEL_NUM[current_level];

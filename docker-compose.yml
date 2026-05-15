@@ -6,9 +6,13 @@
 # Development (hot-reload via tsx watch):
 #   docker compose --profile dev up -d
 #
+# Primary configuration uses config.json (see config.example.json).
+# Create config.json in the project root, or mount one into the container.
+# Environment variables below override config.json for runtime tweaks.
+# Set CONFIG_PATH to use a custom config location inside the container.
+#
 
 services:
-
   # Production
   app:
     # image: oai-tts-router:latest
@@ -16,13 +20,17 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "17777:17777"
+      - '17777:17777'
     environment:
       - PORT=17777
       - API_KEY=${API_KEY:-}
       - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
       # - HTTP_PROXY=http://host.docker.internal:10808
       # - HTTPS_PROXY=http://host.docker.internal:10808
+    # Mount config.json from host (uncomment and create ./config.json first)
+    # volumes:
+    #   - ./config.json:/app/config.json:ro
     volumes:
       - models:/app/models
     restart: unless-stopped
@@ -36,15 +44,18 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "17777:17777"
+      - '17777:17777'
     environment:
       - PORT=17777
       - NODE_ENV=development
       - API_KEY=${API_KEY:-}
       - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
     volumes:
       - .:/app
       - /app/node_modules
+      # config.json is mounted automatically via the host volume (.:/app).
+      # Create it on the host at ./config.json and it will be picked up.
       - models:/app/models
     restart: unless-stopped
 
