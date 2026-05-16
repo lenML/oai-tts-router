@@ -61,11 +61,25 @@ describe('GeminiTtsProvider', () => {
     });
 
     it('should return models list', () => {
-      expect(provider.get_models()).toEqual(['gemini-tts']);
+      expect(provider.get_models()).toEqual([
+        'gemini-3.1-flash-tts-preview',
+        'gemini-2.5-flash-tts',
+        'gemini-2.5-pro-tts',
+        'gemini-2.5-flash-lite-preview-tts',
+        'chirp3-hd',
+      ]);
     });
 
     it('should support gemini-tts model', () => {
       expect(provider.supports_model('gemini-tts')).toBe(true);
+    });
+
+    it('should support all gemini tts model IDs', () => {
+      expect(provider.supports_model('gemini-3.1-flash-tts-preview')).toBe(true);
+      expect(provider.supports_model('gemini-2.5-flash-tts')).toBe(true);
+      expect(provider.supports_model('gemini-2.5-pro-tts')).toBe(true);
+      expect(provider.supports_model('gemini-2.5-flash-lite-preview-tts')).toBe(true);
+      expect(provider.supports_model('chirp3-hd')).toBe(true);
     });
 
     it('should not support unknown models', () => {
@@ -86,26 +100,26 @@ describe('GeminiTtsProvider', () => {
       const p = new GeminiTtsProvider({
         tokens: ['token1', 'token2', 'token3'],
       });
-      expect(p.get_models()).toEqual(['gemini-tts']);
+      expect(p.name).toBe('gemini-tts');
     });
 
     it('should accept a single token string', () => {
       const p = new GeminiTtsProvider({
         tokens: 'single-token-value',
       });
-      expect(p.get_models()).toEqual(['gemini-tts']);
+      expect(p.name).toBe('gemini-tts');
     });
 
     it('should filter empty tokens', () => {
       const p = new GeminiTtsProvider({
         tokens: ['valid', '', null, 'also-valid'],
       });
-      expect(p.get_models()).toEqual(['gemini-tts']);
+      expect(p.name).toBe('gemini-tts');
     });
 
     it('should default to empty array when no tokens provided', () => {
       const p = new GeminiTtsProvider({});
-      expect(p.get_models()).toEqual(['gemini-tts']);
+      expect(p.name).toBe('gemini-tts');
     });
   });
 
@@ -237,6 +251,19 @@ describe('GeminiTtsProvider', () => {
 
       const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
       expect(call_body.voice.name).toBe('Zephyr');
+    });
+
+    it('should use request model when extra.model not set', async () => {
+      mock_json_success('YXVkaW8=');
+
+      await provider.speak({
+        model: 'gemini-2.5-flash-tts',
+        input: 'Hello',
+        extra: {},
+      });
+
+      const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
+      expect(call_body.voice.modelName).toBe('gemini-2.5-flash-tts');
     });
 
     it('should pass model from extra', async () => {
@@ -567,36 +594,42 @@ describe('GeminiTtsProvider', () => {
 
     it('should switch tokens on retry when multiple tokens available', async () => {
       vi.useFakeTimers();
-      const multi_provider = new GeminiTtsProvider({
-        tokens: ['token-a', 'token-b', 'token-c'],
-      });
-
-      mock_request
-        .mockResolvedValueOnce({
-          status: 429,
-          headers: { 'content-type': 'text/plain' },
-          rawBody: Buffer.from('rate limited'),
-        })
-        .mockResolvedValueOnce({
-          status: 200,
-          headers: { 'content-type': 'text/plain' },
-          rawBody: Buffer.from(JSON.stringify({ audioContent: 'YXVkaW8=' })),
+      const orig_random = Math.random;
+      Math.random = () => 0.5;
+      try {
+        const multi_provider = new GeminiTtsProvider({
+          tokens: ['token-a', 'token-b', 'token-c'],
         });
 
-      const promise = multi_provider.speak({
-        model: 'gemini-tts',
-        input: 'Hello',
-        extra: {},
-      });
-      await vi.advanceTimersByTimeAsync(3000);
-      const result = await promise;
+        mock_request
+          .mockResolvedValueOnce({
+            status: 429,
+            headers: { 'content-type': 'text/plain' },
+            rawBody: Buffer.from('rate limited'),
+          })
+          .mockResolvedValueOnce({
+            status: 200,
+            headers: { 'content-type': 'text/plain' },
+            rawBody: Buffer.from(JSON.stringify({ audioContent: 'YXVkaW8=' })),
+          });
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
-      expect(mock_request).toHaveBeenCalledTimes(2);
+        const promise = multi_provider.speak({
+          model: 'gemini-tts',
+          input: 'Hello',
+          extra: {},
+        });
+        await vi.advanceTimersByTimeAsync(3000);
+        const result = await promise;
 
-      const first_token = mock_request.mock.calls[0][0].url;
-      const second_token = mock_request.mock.calls[1][0].url;
-      expect(first_token).not.toBe(second_token);
+        expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+        expect(mock_request).toHaveBeenCalledTimes(2);
+
+        const first_token = mock_request.mock.calls[0][0].url;
+        const second_token = mock_request.mock.calls[1][0].url;
+        expect(first_token).not.toBe(second_token);
+      } finally {
+        Math.random = orig_random;
+      }
     });
 
     it('should fail immediately on 401 when only one token configured', async () => {

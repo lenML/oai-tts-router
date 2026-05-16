@@ -64,7 +64,7 @@ Achernar, Achird, Algenib, Algieba, Alnilam, Aoede, Autonoe, Callirrhoe, Charon,
 如果不想在 config.json 中配置全局 token，也可以在每次请求时通过 `token` 参数传入：
 
 ```json
-{"model": "gemini-tts", "input": "Hello", "voice": "Kore", "token": "your-recaptcha-token"}
+{"model": "gemini-2.5-flash-tts", "input": "Hello", "voice": "Kore", "token": "your-recaptcha-token"}
 ```
 
 使用 `token` 参数时不使用系统配置，不触发重试和 token 轮换。

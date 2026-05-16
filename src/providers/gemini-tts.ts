@@ -51,6 +51,14 @@ const gemini_tts_schema = tts_request_base.extend({
 
 const PROXY_BASE = 'https://cxl-services.appspot.com/proxy';
 const TTS_URL = 'https://texttospeech.googleapis.com/v1beta1/text:synthesize';
+/** Gemini TTS models that this provider supports as first-class model IDs. */
+const GEMINI_MODELS = [
+  'gemini-3.1-flash-tts-preview',
+  'gemini-2.5-flash-tts',
+  'gemini-2.5-pro-tts',
+  'gemini-2.5-flash-lite-preview-tts',
+  'chirp3-hd',
+] as const;
 
 const DEFAULT_GEMINI_VOICES = [
   'Achernar',
@@ -151,7 +159,7 @@ export class GeminiTtsProvider implements TtsProvider {
   }
 
   get_models(): string[] {
-    return ['gemini-tts'];
+    return [...GEMINI_MODELS];
   }
 
   get_model_voices(_model: string): string[] {
@@ -159,12 +167,14 @@ export class GeminiTtsProvider implements TtsProvider {
   }
 
   supports_model(model: string): boolean {
-    return model === 'gemini-tts';
+    return (
+      model === 'gemini-tts' || GEMINI_MODELS.includes(model as (typeof GEMINI_MODELS)[number])
+    );
   }
 
   async speak(params: SpeechParams): Promise<SpeechResult> {
     const voice = resolve_voice(params.extra['voice'] as string | undefined);
-    const gemini_model = resolve_model(params.extra['model'] as string | undefined);
+    const gemini_model = resolve_model(params.extra['model'] as string | undefined, params.model);
     const encoding = resolve_encoding(params.extra['encoding'] as string | undefined);
     const language = (params.extra['language'] as string | undefined) ?? 'en-us';
     const sample_rate = (params.extra['sample_rate'] as number | undefined) ?? 24000;
@@ -246,8 +256,11 @@ function resolve_voice(voice: string | undefined): string {
   return voice ?? 'Kore';
 }
 
-function resolve_model(model: string | undefined): string {
-  return model ?? 'gemini-3.1-flash-tts-preview';
+function resolve_model(extra_model: string | undefined, request_model: string): string {
+  if (extra_model) return extra_model;
+  // Use request model directly if it's a known Gemini model
+  if (GEMINI_MODELS.includes(request_model as (typeof GEMINI_MODELS)[number])) return request_model;
+  return 'gemini-3.1-flash-tts-preview';
 }
 
 function resolve_encoding(encoding: string | undefined): string {
