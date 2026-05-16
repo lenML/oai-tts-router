@@ -126,7 +126,7 @@ PROXY_HEADERS['user-agent'] =
 interface CuimpResponse {
   status: number;
   headers: Record<string, string | string[]>;
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- matches cuimp API
+  // eslint-disable-next-line @typescript-eslint/naming-convention -- matches cuimp API shape
   rawBody: Buffer | Uint8Array;
 }
 
@@ -180,12 +180,25 @@ export class GeminiTtsProvider implements TtsProvider {
     );
 
     const req_token = params.extra['token'] as string | undefined;
-    const token = req_token ?? ensure_token(this.tokens);
+    const pool: string[] = req_token ? [req_token] : [...this.tokens];
     const max_retries = req_token ? 0 : 3;
 
-    return retry_with_backoff(max_retries, token, {
-      do_attempt: async (current_token, is_last_attempt) => {
-        const response = await do_tts_request(request_payload, current_token);
+    if (pool.length === 0) {
+      throw no_credential_error(
+        'No tokens configured for gemini-tts. ' +
+          'Add `providers.gemini-tts.tokens` to config.json.',
+      );
+    }
+
+    for (let attempt = 0; ; attempt++) {
+      if (pool.length === 0) {
+        throw provider_error('authentication failed: all tokens rejected (401)', 502);
+      }
+
+      const token = attempt === 0 ? pool[0] : (pick_random(pool) ?? pool[0]);
+
+      try {
+        const response = await do_tts_request(request_payload, token);
         const status = response.status;
 
         if (status === 200) {
@@ -193,17 +206,37 @@ export class GeminiTtsProvider implements TtsProvider {
           return build_speech_result(audio_data, encoding, sample_rate);
         }
 
-        if (status === 401 || status === 429 || status === 500 || status === 503) {
-          if (is_last_attempt) {
+        if (status === 401) {
+          const idx = pool.indexOf(token);
+          if (idx >= 0) pool.splice(idx, 1);
+          if (pool.length === 0) {
+            throw provider_error('authentication failed: all tokens rejected (401)', 502);
+          }
+          continue;
+        }
+
+        if (status === 429 || status === 500 || status === 503) {
+          if (attempt >= max_retries) {
             throw provider_error(`returned ${status} after 3 retries`, 502);
           }
-          return { retry: true };
+          await sleep(Math.pow(2, attempt + 1) * 1000 + Math.random() * 500);
+          continue;
         }
 
         throw provider_error(`returned HTTP ${status}: ${preview_body(response.rawBody)}`, 502);
-      },
-      pick_other_token: exclude => pick_other_token(this.tokens, exclude),
-    });
+      } catch (err) {
+        if (err instanceof OpenAiError) {
+          throw err;
+        }
+        if (attempt >= max_retries) {
+          throw provider_error(
+            `request failed: ${err instanceof Error ? err.message : String(err)}`,
+            502,
+          );
+        }
+        await sleep(Math.pow(2, attempt + 1) * 1000 + Math.random() * 500);
+      }
+    }
   }
 }
 
@@ -283,28 +316,6 @@ function build_tts_payload(
   return JSON.stringify(body);
 }
 
-// -- Token management --
-
-function ensure_token(tokens: string[]): string {
-  const token = pick_random(tokens);
-  if (!token) {
-    throw new OpenAiError(
-      'No tokens configured for gemini-tts. ' + 'Add `providers.gemini-tts.tokens` to config.json.',
-      OPENAI_ERROR_TYPE.PROVIDER,
-      null,
-      OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
-      502,
-    );
-  }
-  return token;
-}
-
-function pick_other_token(tokens: string[], exclude: string): string {
-  if (tokens.length <= 1) return exclude;
-  const available = tokens.filter(t => t !== exclude);
-  return pick_random(available) ?? exclude;
-}
-
 // -- HTTP --
 
 async function do_tts_request(body_str: string, token: string): Promise<CuimpResponse> {
@@ -329,13 +340,11 @@ function decode_audio_content(raw_body: Buffer | Uint8Array): Buffer {
   const body_buf = Buffer.from(raw_body);
   const text = body_buf.toString('utf-8');
 
-  // Data URL format: data:audio/...;base64,...
   if (text.startsWith('data:')) {
     const stripped = text.replace(/^data:audio\/\w+;base64,/, '');
     return Buffer.from(stripped, 'base64');
   }
 
-  // JSON response with audioContent field
   if (text.startsWith('{') || text.startsWith('[')) {
     try {
       const parsed = JSON.parse(text) as Record<string, unknown>;
@@ -348,7 +357,6 @@ function decode_audio_content(raw_body: Buffer | Uint8Array): Buffer {
     }
   }
 
-  // Raw base64 string
   return Buffer.from(text.replace(/\s/g, ''), 'base64');
 }
 
@@ -363,7 +371,6 @@ function build_speech_result(
     mime = 'audio/L16; rate=24000; channels=1';
   }
 
-  // Update sample rate in the MIME type if it contains rate=
   mime = mime.replace(/rate=\d+/, `rate=${sample_rate}`);
 
   return {
@@ -372,50 +379,17 @@ function build_speech_result(
   };
 }
 
-// -- Retry --
-
-type AttemptResult = SpeechResult | { retry: true };
-
-interface RetryConfig {
-  do_attempt: (token: string, is_last_attempt: boolean) => Promise<AttemptResult>;
-  pick_other_token?: (exclude: string) => string;
-}
-
-async function retry_with_backoff(
-  max_retries: number,
-  initial_token: string,
-  config: RetryConfig,
-): Promise<SpeechResult> {
-  let token = initial_token;
-
-  for (let attempt = 0; attempt <= max_retries; attempt++) {
-    if (attempt > 0) {
-      await sleep(Math.pow(2, attempt) * 1000 + Math.random() * 500);
-      if (config.pick_other_token) {
-        token = config.pick_other_token(token);
-      }
-    }
-
-    try {
-      const result = await config.do_attempt(token, attempt === max_retries);
-      if (!('retry' in result)) {
-        return result;
-      }
-    } catch (err) {
-      if (err instanceof OpenAiError) throw err;
-      if (attempt === max_retries) {
-        throw provider_error(
-          `request failed: ${err instanceof Error ? err.message : String(err)}`,
-          502,
-        );
-      }
-    }
-  }
-
-  throw provider_error('unexpected end of retry loop', 500);
-}
-
 // -- Error helpers --
+
+function no_credential_error(message?: string): OpenAiError {
+  return new OpenAiError(
+    message ?? 'No valid tokens configured for gemini-tts.',
+    OPENAI_ERROR_TYPE.PROVIDER,
+    null,
+    OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
+    502,
+  );
+}
 
 function provider_error(message: string, status_code: number): OpenAiError {
   return new OpenAiError(

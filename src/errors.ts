@@ -35,7 +35,6 @@ export class OpenAiError extends Error {
   }
 }
 
-/** Convert a ZodError to an OpenAiError (first issue only). */
 export function openai_error_from_zod(error: ZodError): OpenAiError {
   const first = error.issues[0];
   const path = first.path.length > 0 ? first.path.join('.') : null;

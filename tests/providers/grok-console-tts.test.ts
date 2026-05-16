@@ -503,8 +503,73 @@ describe('GrokTtsProvider', () => {
           extra: {},
         }),
       ).rejects.toThrow('HTTP 400');
+    });
 
+    it('should immediately retry with next cookie on 401', async () => {
+      const multi = new GrokTtsProvider({
+        cookies: ['cookie-a', 'cookie-b'],
+      });
+      mock_request
+        .mockResolvedValueOnce({
+          status: 401,
+          headers: { 'content-type': 'text/html' },
+          rawBody: Buffer.from('unauthorized'),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          headers: { 'content-type': 'audio/mpeg' },
+          rawBody: Buffer.from('audio-data'),
+        });
+
+      const result = await multi.speak({
+        model: 'grok-console-tts',
+        input: 'Hello',
+        extra: {},
+      });
+
+      expect(result.content_type).toBe('audio/mpeg');
+      expect(result.data.toString()).toBe('audio-data');
+      expect(mock_request).toHaveBeenCalledTimes(2);
+      const first = mock_request.mock.calls[0][0].headers.cookie;
+      const second = mock_request.mock.calls[1][0].headers.cookie;
+      expect(first).not.toBe(second);
+    });
+
+    it('should fail immediately on 401 when only one cookie configured', async () => {
+      mock_request.mockResolvedValue({
+        status: 401,
+        headers: { 'content-type': 'text/html' },
+        rawBody: Buffer.from('unauthorized'),
+      });
+
+      await expect(
+        provider.speak({
+          model: 'grok-console-tts',
+          input: 'Hello',
+          extra: {},
+        }),
+      ).rejects.toThrow('all cookies rejected (401)');
       expect(mock_request).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fail when all cookies return 401', async () => {
+      const multi = new GrokTtsProvider({
+        cookies: ['cookie-a', 'cookie-b', 'cookie-c'],
+      });
+      mock_request.mockResolvedValue({
+        status: 401,
+        headers: { 'content-type': 'text/html' },
+        rawBody: Buffer.from('unauthorized'),
+      });
+
+      await expect(
+        multi.speak({
+          model: 'grok-console-tts',
+          input: 'Hello',
+          extra: {},
+        }),
+      ).rejects.toThrow('all cookies rejected (401)');
+      expect(mock_request).toHaveBeenCalledTimes(3);
     });
   });
 });

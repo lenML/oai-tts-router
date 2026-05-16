@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grok Console TTS provider.
  * Uses cuimp to impersonate Chrome 146 TLS fingerprint and calls
  * the x.ai Console Playground TTS endpoint for speech synthesis.
@@ -16,6 +16,7 @@
  *   - codec (optional, default "mp3"): mp3, pcm, ulaw, opus
  *   - language (optional, default "en"): language code
  *   - sample_rate (optional, default 24000): sample rate in Hz
+ *   - cookie (optional): per-request cookie, bypasses config and auth rotation
  */
 
 import { z } from 'zod';
@@ -109,17 +110,31 @@ export class GrokTtsProvider implements TtsProvider {
     const sample_rate = (params.extra['sample_rate'] as number | undefined) ?? 24000;
 
     const request = build_request_payload(params.input, voice, codec, language, sample_rate);
+
     const req_cookie = params.extra['cookie'] as string | undefined;
-    const cookie = req_cookie ?? ensure_cookie(this.cookies);
+    const pool: string[] = req_cookie ? [req_cookie] : [...this.cookies];
     const max_retries = req_cookie ? 0 : 3;
 
-    return retry_with_backoff(max_retries, cookie, {
-      do_attempt: async (current_cookie, is_last_attempt) => {
-        const response = await do_tts_request(
-          request.body_str,
-          request.content_length,
-          current_cookie,
-        );
+    if (pool.length === 0) {
+      throw no_credential_error(
+        'No cookies configured for grok-console-tts. ' +
+          'Add `providers.grok-console-tts.cookies` to config.json.',
+      );
+    }
+
+    // Retry loop handles both rate-limit backoff and credential rotation
+    let last_cookie: string | undefined;
+    for (let attempt = 0; ; attempt++) {
+      if (pool.length === 0) {
+        throw provider_error('authentication failed: all cookies rejected (401)', 502);
+      }
+
+      const cookie =
+        attempt === 0 ? pool[0] : (pick_random(pool.filter(c => c !== last_cookie)) ?? pool[0]);
+      last_cookie = cookie;
+
+      try {
+        const response = await do_tts_request(request.body_str, request.content_length, cookie);
         const status = response.status;
         const response_ct = (response.headers['content-type'] as string | undefined) ?? '';
 
@@ -127,19 +142,44 @@ export class GrokTtsProvider implements TtsProvider {
           return build_speech_result(response, codec, sample_rate);
         }
 
+        if (status === 401) {
+          const idx = pool.indexOf(cookie);
+          if (idx >= 0) pool.splice(idx, 1);
+          // Continue loop immediately (no backoff) to try next credential
+          if (pool.length === 0) {
+            throw provider_error('authentication failed: all cookies rejected (401)', 502);
+          }
+          continue;
+        }
+
         if (status === 429 || status === 500 || status === 503) {
-          if (is_last_attempt) {
+          if (attempt >= max_retries) {
             throw provider_error(`returned ${status} after 3 retries`, 502);
           }
-          return { retry: true };
+          await sleep(Math.pow(2, attempt + 1) * 1000 + Math.random() * 500);
+          continue;
         }
 
         throw provider_error(`returned HTTP ${status}: ${preview_body(response.rawBody)}`, 502);
-      },
-      pick_other_cookie: exclude => pick_other_cookie(this.cookies, exclude),
-    });
+      } catch (err) {
+        if (err instanceof OpenAiError) {
+          // Let AuthCredentialError from 401 removal below propagate to caller
+          // Re-throw non-auth OpenAiErrors
+          throw err;
+        }
+        // Network errors: retry with backoff
+        if (attempt >= max_retries) {
+          throw provider_error(
+            `request failed: ${err instanceof Error ? err.message : String(err)}`,
+            502,
+          );
+        }
+        await sleep(Math.pow(2, attempt + 1) * 1000 + Math.random() * 500);
+      }
+    }
   }
 }
+
 // -- Request building --
 
 function resolve_voice(voice: string | undefined): string {
@@ -167,27 +207,6 @@ function build_request_payload(
   const body_str = JSON.stringify(body);
   const content_length = String(Buffer.byteLength(body_str, 'utf-8'));
   return { body_str, content_length };
-}
-
-function ensure_cookie(cookies: string[]): string {
-  const cookie = pick_random(cookies);
-  if (!cookie) {
-    throw new OpenAiError(
-      'No cookies configured for grok-console-tts. ' +
-        'Add `providers.grok-console-tts.cookies` to config.json.',
-      OPENAI_ERROR_TYPE.PROVIDER,
-      null,
-      OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
-      502,
-    );
-  }
-  return cookie;
-}
-
-function pick_other_cookie(cookies: string[], exclude: string): string {
-  if (cookies.length <= 1) return exclude;
-  const available = cookies.filter(c => c !== exclude);
-  return pick_random(available) ?? exclude;
 }
 
 // -- HTTP --
@@ -237,52 +256,17 @@ function build_speech_result(
   };
 }
 
-// -- Retry --
-
-type AttemptResult = SpeechResult | { retry: true };
-
-interface RetryConfig {
-  do_attempt: (cookie: string, is_last_attempt: boolean) => Promise<AttemptResult>;
-  pick_other_cookie?: (exclude: string) => string;
-}
-
-async function retry_with_backoff(
-  max_retries: number,
-  initial_cookie: string,
-  config: RetryConfig,
-): Promise<SpeechResult> {
-  let cookie = initial_cookie;
-
-  for (let attempt = 0; attempt <= max_retries; attempt++) {
-    if (attempt > 0) {
-      await sleep(Math.pow(2, attempt) * 1000 + Math.random() * 500);
-      if (config.pick_other_cookie) {
-        cookie = config.pick_other_cookie(cookie);
-      }
-    }
-
-    try {
-      const result = await config.do_attempt(cookie, attempt === max_retries);
-
-      if (!('retry' in result)) {
-        return result;
-      }
-    } catch (err) {
-      if (err instanceof OpenAiError) throw err;
-
-      if (attempt === max_retries) {
-        throw provider_error(
-          `request failed: ${err instanceof Error ? err.message : String(err)}`,
-          502,
-        );
-      }
-    }
-  }
-
-  throw provider_error('unexpected end of retry loop', 500);
-}
-
 // -- Error helpers --
+
+function no_credential_error(message?: string): OpenAiError {
+  return new OpenAiError(
+    message ?? 'No valid cookies configured for grok-console-tts.',
+    OPENAI_ERROR_TYPE.PROVIDER,
+    null,
+    OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
+    502,
+  );
+}
 
 function provider_error(message: string, status_code: number): OpenAiError {
   return new OpenAiError(

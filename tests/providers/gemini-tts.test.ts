@@ -379,7 +379,7 @@ describe('GeminiTtsProvider', () => {
           input: 'Hello',
           extra: { token: 'req-token-123' },
         }),
-      ).rejects.toThrow('gemini-tts returned 401');
+      ).rejects.toThrow('all tokens rejected (401)');
       expect(mock_request).toHaveBeenCalledTimes(1);
     });
 
@@ -401,8 +401,7 @@ describe('GeminiTtsProvider', () => {
       vi.useRealTimers();
     });
 
-    it('should retry on 401 and succeed', async () => {
-      vi.useFakeTimers();
+    it('should immediately retry with next token on 401', async () => {
       mock_request
         .mockResolvedValueOnce({
           status: 401,
@@ -415,17 +414,18 @@ describe('GeminiTtsProvider', () => {
           rawBody: Buffer.from(JSON.stringify({ audioContent: 'YXVkaW8=' })),
         });
 
-      const promise = provider.speak({
+      const result = await provider.speak({
         model: 'gemini-tts',
         input: 'Hello',
         extra: {},
       });
-      await vi.advanceTimersByTimeAsync(3000);
-      const result = await promise;
 
       expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
       expect(result.data.toString()).toBe('audio');
       expect(mock_request).toHaveBeenCalledTimes(2);
+      const firstUrl = mock_request.mock.calls[0][0].url;
+      const secondUrl = mock_request.mock.calls[1][0].url;
+      expect(firstUrl).not.toBe(secondUrl);
     });
 
     it('should retry on 429 and succeed', async () => {
@@ -599,22 +599,44 @@ describe('GeminiTtsProvider', () => {
       expect(first_token).not.toBe(second_token);
     });
 
-    it('should not retry on 400 error', async () => {
+    it('should fail immediately on 401 when only one token configured', async () => {
+      const single = new GeminiTtsProvider({
+        tokens: ['single-token'],
+      });
       mock_request.mockResolvedValue({
-        status: 400,
-        headers: { 'content-type': 'application/json' },
-        rawBody: Buffer.from(JSON.stringify({ error: 'bad request' })),
+        status: 401,
+        headers: { 'content-type': 'text/plain' },
+        rawBody: Buffer.from('unauthorized'),
       });
 
       await expect(
-        provider.speak({
+        single.speak({
           model: 'gemini-tts',
           input: 'Hello',
           extra: {},
         }),
-      ).rejects.toThrow('HTTP 400');
-
+      ).rejects.toThrow('all tokens rejected (401)');
       expect(mock_request).toHaveBeenCalledTimes(1);
+    });
+
+    it('should fail when all tokens return 401', async () => {
+      const multi = new GeminiTtsProvider({
+        tokens: ['token-ex-1', 'token-ex-2', 'token-ex-3'],
+      });
+      mock_request.mockResolvedValue({
+        status: 401,
+        headers: { 'content-type': 'text/plain' },
+        rawBody: Buffer.from('unauthorized'),
+      });
+
+      await expect(
+        multi.speak({
+          model: 'gemini-tts',
+          input: 'Hello',
+          extra: {},
+        }),
+      ).rejects.toThrow('all tokens rejected (401)');
+      expect(mock_request).toHaveBeenCalledTimes(3);
     });
   });
 });
