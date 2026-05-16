@@ -1,4 +1,4 @@
-<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
+﻿<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
 
 # oai-tts-router
 
@@ -26,6 +26,8 @@ docker compose up -d
 | `gemini-tts`       | Google Cloud TTS (Gemini-TTS) | 超高质量，有鉴权，IP敏感，速度一般，限制文本长度，有限速，有超时中断 | [docs](/docs/providers/gemini-tts.md)       |
 
 ## Config
+
+配置以 `config.json` 为主，不推荐使用 `.env` 文件。若使用 Docker 部署，建议在 `docker compose` 的 `environment` 中设置环境变量，而非依赖 `.env` 文件。
 
 详见 [配置文档](/docs/configuration.md)。
 
