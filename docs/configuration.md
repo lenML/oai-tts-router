@@ -36,6 +36,17 @@
 | `providers` | object | `{}` | 各 Provider 特定配置 |
 | `default_params` | object | `{}` | 每个模型的默认请求参数 |
 
+## 鉴权
+
+配置 `api_keys`（或环境变量 `API_KEY`）后，服务会开启鉴权。未配置时所有请求免鉴权通过。
+
+鉴权方式根据路径不同：
+
+- **API 路由**（`/v1/*`）— **Bearer 鉴权**。请求头需携带 `Authorization: Bearer <key>`。
+- **Playground**（`/playground`）— **Basic 鉴权**。Username 任意，Password 填入任一 API key 即可。
+
+支持多个 key：`config.json` 用数组，环境变量用逗号分隔（如 `API_KEY=sk-key1,sk-key2`）。
+
 ## .env / 环境变量
 
 环境变量优先级高于 config.json：
@@ -43,7 +54,7 @@
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `PORT` | `3000` | 监听端口 |
-| `API_KEY` | - | 鉴权 key，逗号分隔 |
+| `API_KEY` | - | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
 | `TTS_CACHE_SIZE` | `0` | 如 `100mb`，`0` 禁用 |
 | `LOG_LEVEL` | `info` | 日志级别 |
 | `HTTP_PROXY` | - | 出站 HTTP 代理 |
