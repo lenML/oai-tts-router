@@ -7,6 +7,9 @@
 
 import { z } from 'zod';
 
+/** Max input length for text_split requests */
+export const TEXT_SPLIT_MAX_INPUT = 100_000;
+
 /** Base TTS request - every request needs at least model and input. */
 export const tts_request_base = z.object({
   model: z.string().min(1, { message: 'The `model` parameter is required.' }),
@@ -18,7 +21,18 @@ export const tts_request_base = z.object({
   no_cache: z.boolean().optional(),
 });
 
+/** Extended TTS request with text_split and fallback support. */
+export const tts_request_extended = tts_request_base.extend({
+  /** Split long text into chunks and concatenate audio */
+  text_split: z.boolean().optional(),
+  /** Max characters per chunk when text_split is enabled (default 1000) */
+  text_split_max_length: z.number().int().positive().max(10000).optional(),
+  /** Fallback model IDs to try if the primary model fails */
+  fallback_models: z.array(z.string().min(1)).optional(),
+});
+
 export type TtsRequestBase = z.infer<typeof tts_request_base>;
+export type TtsRequestExtended = z.infer<typeof tts_request_extended>;
 
 /** Common audio output formats */
 export const AUDIO_FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;

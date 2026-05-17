@@ -1,11 +1,10 @@
 # 配置
 
-项目使用 **config.json** 作为主要配置文件，同时支持 .env 和环境变量覆盖。
+项目使用 **config.json** 作为主要配置文件，同时支持 `.env` 和环境变量覆盖。
 
 ## config.json
 
 复制 `config.example.json` 为 `config.json` 然后编辑：
-
 ```json
 {
   "port": 4567,
@@ -17,7 +16,12 @@
   },
   "cache": { "tts_size": "100mb" },
   "providers": {
-    "openai-fm": { "base_url": "https://www.openai.fm" }
+    "openai-fm": { "base_url": "https://www.openai.fm" },
+    "gemini-tts": { "api_key": "your-gemini-key" },
+    "grok-console-tts": {
+      "cookies": ["your-cookie"],
+      "api_key": "your-api-key"
+    }
   },
   "default_params": {
     "edge-tts": { "voice": "en-US-JennyNeural" }
@@ -29,23 +33,30 @@
 | --- | --- | --- | --- |
 | `port` | number | `3000` | 监听端口 |
 | `log_level` | string | `"info"` | debug / info / warn / error |
-| `api_keys` | string\[\] | `[]` | 鉴权 key 列表，空=无鉴权 |
+| `api_keys` | string[] | `[]` | 鉴权 key 列表，空=无鉴权 |
 | `proxy.http` | string | - | 出站 HTTP 代理 |
 | `proxy.https` | string | - | 出站 HTTPS 代理 |
 | `cache.tts_size` | string | - | 响应缓存大小（如 `"100mb"`） |
+| `providers` | object | `{}` | 各 Provider 特定配置（详细见各 provider 文档） |
+| `default_params` | object | `{}` | 每个模型的默认请求参数（见下文） |
 
-请求时可通过 `no_cache: true` 参数跳过缓存，强制调用 TTS 后端（详见 API 文档）。
-| `providers` | object | `{}` | 各 Provider 特定配置 |
-| `default_params` | object | `{}` | 每个模型的默认请求参数 |
+请求时可通过 `no_cache: true` 参数跳过缓存，强制调用 TTS 后端（详见 [API 文档](api.md)）。
+
+### 新增高级功能
+
+支持以下请求级特性（无需全局配置，在请求体中传入对应参数即可）：
+
+| 功能 | 请求参数 | 说明 |
+| --- | --- | --- |
+| 长文本切割 | `text_split: true` | 自动切分长文本并拼接音频，详见 [API 文档](api.md#长文本切割text_split) |
+| 自动降级 | `fallback_models: [...]` | 主模型失败时自动尝试备用模型，详见 [API 文档](api.md#自动路由降级fallback_models) |
 
 ## 鉴权
 
 配置 `api_keys`（或环境变量 `API_KEY`）后，服务会开启鉴权。未配置时所有请求免鉴权通过。
-
 鉴权方式根据路径不同：
-
-- **API 路由**（`/v1/*`）— **Bearer 鉴权**。请求头需携带 `Authorization: Bearer <key>`。
-- **Playground**（`/playground`）— **Basic 鉴权**。Username 任意，Password 填入任一 API key 即可。
+- **API 路由**（`/v1/*`）→ **Bearer 鉴权**。请求头需携带 `Authorization: Bearer <key>`。
+- **Playground**（`/playground`）→ **Basic 鉴权**。Username 任意，Password 填入任一 API key 即可。
 
 支持多个 key：`config.json` 用数组，环境变量用逗号分隔（如 `API_KEY=sk-key1,sk-key2`）。
 
@@ -57,7 +68,7 @@
 | --- | --- | --- |
 | `PORT` | `3000` | 监听端口 |
 | `API_KEY` | - | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
-| `TTS_CACHE_SIZE` | `0` | 如 `100mb`，`0` 禁用 |
+| `TTS_CACHE_SIZE` | `0` | 如 `"100mb"`，`"0"` 禁用 |
 | `LOG_LEVEL` | `info` | 日志级别 |
 | `HTTP_PROXY` | - | 出站 HTTP 代理 |
 | `HTTPS_PROXY` | - | 出站 HTTPS 代理 |
@@ -70,7 +81,8 @@
 ```json
 {
   "default_params": {
-    "edge-tts": { "voice": "en-US-JennyNeural", "rate": "+10%" }
+    "edge-tts": { "voice": "en-US-JennyNeural", "rate": "+10%" },
+    "grok-console-tts": { "voice": "coral" }
   }
 }
 ```

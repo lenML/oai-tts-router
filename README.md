@@ -1,8 +1,19 @@
-﻿<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
+<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
 
 # oai-tts-router
 
 a **Free** TTS Router — OpenAI TTS 兼容代理，聚合多种免费 TTS 后端。
+
+## Features
+
+- OpenAI TTS API 兼容
+- 多种免费 TTS 后端聚合
+- **长文本切割**：自动切分长文本，分段生成后拼接音频，突破单次字符限制
+- **自动降级**：主模型失败时自动尝试备用模型，保证请求总有返回值
+- 响应缓存（LRU）
+- 可扩展 Provider 接口
+
+详细 API 参数见 [API 文档](docs/api.md)。
 
 ## Quick Start
 
@@ -29,7 +40,11 @@ docker compose up -d
 
 配置以 `config.json` 为主，不推荐使用 `.env` 文件。若使用 Docker 部署，建议在 `docker compose` 的 `environment` 中设置环境变量，而非依赖 `.env` 文件。
 
-详见 [配置文档](/docs/configuration.md)。
+详见 [配置文档](docs/configuration.md)。
+
+## API
+
+完整的 API 参数说明（包括长文本切割、自动降级、缓存控制等）见 [API 文档](docs/api.md)。
 
 ## Playground
 
