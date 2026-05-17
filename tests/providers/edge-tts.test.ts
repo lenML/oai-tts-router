@@ -107,11 +107,6 @@ describe('EdgeTtsProvider', () => {
     });
 
     it('should pass rate/volume/pitch options', async () => {
-      const { EdgeTTS } = await import('@andresaya/edge-tts');
-
-      const instance = new (EdgeTTS as never)();
-      const synthesizeSpy = vi.spyOn(instance, 'synthesize');
-
       await provider.speak({
         model: 'edge-tts',
         input: 'test',

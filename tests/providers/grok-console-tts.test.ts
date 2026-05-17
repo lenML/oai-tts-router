@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grok Console TTS provider tests.
  * Mocks cuimp to avoid actual network calls.
  */
@@ -344,6 +344,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
@@ -371,6 +373,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
@@ -397,6 +401,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
@@ -417,6 +423,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(16000);
       await expect(promise).rejects.toThrow('after 3 retries');
     });
@@ -434,6 +442,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
@@ -451,6 +461,8 @@ describe('GrokTtsProvider', () => {
         input: 'Hello',
         extra: {},
       });
+      promise.catch(() => {}); // suppress unhandled rejection
+
       await vi.advanceTimersByTimeAsync(16000);
       await expect(promise).rejects.toThrow('Persistent failure');
     });
