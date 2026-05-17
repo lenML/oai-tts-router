@@ -33,6 +33,8 @@
 | `proxy.http` | string | - | 出站 HTTP 代理 |
 | `proxy.https` | string | - | 出站 HTTPS 代理 |
 | `cache.tts_size` | string | - | 响应缓存大小（如 `"100mb"`） |
+
+请求时可通过 `no_cache: true` 参数跳过缓存，强制调用 TTS 后端（详见 API 文档）。
 | `providers` | object | `{}` | 各 Provider 特定配置 |
 | `default_params` | object | `{}` | 每个模型的默认请求参数 |
 

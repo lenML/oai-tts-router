@@ -14,6 +14,8 @@ export const tts_request_base = z.object({
     .string()
     .min(1, { message: 'The `input` parameter is required.' })
     .max(4096, { message: 'The `input` parameter must not exceed 4096 characters.' }),
+  /** Skip cache for this request */
+  no_cache: z.boolean().optional(),
 });
 
 export type TtsRequestBase = z.infer<typeof tts_request_base>;

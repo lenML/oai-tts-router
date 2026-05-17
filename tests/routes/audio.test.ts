@@ -200,6 +200,53 @@ describe('POST /v1/audio/speech', () => {
       expect(res2.headers['x-cache']).toBe('MISS');
     });
   });
+  describe('no_cache flag', () => {
+    let registry: ProviderRegistry;
+    let app: Express;
+
+    beforeEach(() => {
+      init_cache('10mb');
+      registry = new ProviderRegistry();
+      registry.register(new EchoProvider());
+      app = build_app(registry);
+    });
+
+    it('should return MISS on repeated request with no_cache=true', async () => {
+      const body = { model: 'tts-1', input: 'skip cache', voice: 'alloy', no_cache: true };
+
+      const res1 = await request(app).post('/v1/audio/speech').send(body);
+      expect(res1.status).toBe(200);
+      expect(res1.headers['x-cache']).toBe('MISS');
+
+      const res2 = await request(app).post('/v1/audio/speech').send(body);
+      expect(res2.status).toBe(200);
+      // Should still be MISS because no_cache skips both lookup and store
+      expect(res2.headers['x-cache']).toBe('MISS');
+    });
+
+    it('should return HIT after cached request without no_cache', async () => {
+      const miss_res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'prime cache', voice: 'alloy' });
+      expect(miss_res.headers['x-cache']).toBe('MISS');
+
+      // Same request but with no_cache=true - should still hit cache
+      // because cache was primed with the same body (without no_cache)
+      const hit_res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'prime cache', voice: 'alloy' });
+      expect(hit_res.headers['x-cache']).toBe('HIT');
+    });
+
+    it('should not pass no_cache to provider extra', async () => {
+      const res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'tts-1', input: 'check extra', voice: 'alloy', no_cache: true });
+
+      const body = JSON.parse((res.body as Buffer).toString('utf-8'));
+      expect(body.extra).not.toHaveProperty('no_cache');
+    });
+  });
   describe('provider with schema (EchoProvider)', () => {
     it('should reject missing voice when provider schema requires it', async () => {
       const res = await request(app)

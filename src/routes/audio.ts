@@ -64,11 +64,17 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
       validated_body = body;
     }
 
+    // Step 3.5: Extract no_cache flag before cache/provider processing
+    const no_cache = validated_body['no_cache'] === true;
+    if (no_cache) {
+      delete validated_body['no_cache'];
+    }
+
     // Step 4: Build SpeechParams and call the provider
     const { model, input, ...extra } = validated_body;
     // Check cache before calling the provider
     const ckey = cache_key(validated_body);
-    const cached = cache_lookup(ckey);
+    const cached = no_cache ? undefined : cache_lookup(ckey);
     if (cached) {
       logger.info('tts cache hit', {
         model: model as string,
@@ -99,7 +105,9 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
     });
 
     // Store in cache
-    cache_store(ckey, result);
+    if (!no_cache) {
+      cache_store(ckey, result);
+    }
 
     // Set response headers and send audio data
     res.setHeader('Content-Type', result.content_type);
