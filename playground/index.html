@@ -1,11 +1,12 @@
 ﻿<!doctype html>
 <html data-theme="dark" lang="en" class="h-full">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TTS Playground — oai-tts-router</title>
-    <meta name="description" content="OpenAI TTS API Playground" />
-    <script type="importmap">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TTS Playground — oai-tts-router</title>
+  <meta name="description" content="OpenAI TTS API Playground" />
+  <script type="importmap">
       {
         "imports": {
           "react": "https://esm.sh/react@19.2.4",
@@ -17,932 +18,1012 @@
         }
       }
     </script>
-    <script type="module" src="https://esm.sh/webcrypto-liner-shim@1.4.8"></script>
-    <script type="module" src="https://esm.sh/tsx"></script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-      html,
-      body,
-      #root {
-        height: 100%;
-        overflow: hidden;
-        margin: 0;
-        padding: 0;
+  <script type="module" src="https://esm.sh/webcrypto-liner-shim@1.4.8"></script>
+  <script type="module" src="https://esm.sh/tsx"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    html,
+    body,
+    #root {
+      height: 100%;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    * {
+      font-family:
+        'Inter',
+        system-ui,
+        -apple-system,
+        sans-serif;
+    }
+
+    code,
+    pre,
+    .font-mono {
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace !important;
+    }
+
+    .scroll-thin {
+      scrollbar-width: thin;
+      scrollbar-color: oklch(0.35 0.01 260 / 0.3) transparent;
+    }
+
+    .scroll-thin::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .scroll-thin::-webkit-scrollbar-thumb {
+      background: oklch(0.35 0.01 260 / 0.3);
+      border-radius: 3px;
+    }
+
+    .scroll-thin::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-card: #1f2937;
+      --bg-hover: #374151;
+      --border-color: #374151;
+      --accent-green: #10b981;
+      --text-primary: #ffffff;
+      --text-secondary: #9ca3af;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .nav-link:hover {
+      background: oklch(0.25 0.01 260 / 0.5);
+      color: var(--text-primary);
+    }
+
+    .nav-link.active {
+      background: oklch(0.3 0.01 260 / 0.4);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: oklch(0.5 0.01 260 / 0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 16px 14px 6px;
+    }
+
+    .card-tts {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+
+    .btn-generate {
+      background: var(--accent-green);
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 28px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: filter 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-generate:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-generate:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: none;
+    }
+
+    .param-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: oklch(0.22 0.01 260 / 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .param-chip:hover {
+      border-color: oklch(0.5 0.01 260 / 0.5);
+    }
+
+    .param-chip .label {
+      color: var(--text-secondary);
+    }
+
+    .param-chip select {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 13px;
+      outline: none;
+      padding: 0;
+      cursor: pointer;
+      appearance: none;
+    }
+
+    .param-chip select option {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .history-item {
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .history-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .history-item.active {
+      background: oklch(0.3 0.01 260 / 0.4);
+    }
+
+    .play-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: filter 0.15s;
+      flex-shrink: 0;
+    }
+
+    .play-btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .play-btn svg {
+      color: white;
+      width: 18px;
+      height: 18px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-primary);
+      background: oklch(0.25 0.01 260 / 0.5);
+    }
+
+    .waveform-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .toggle-track {
+      width: 32px;
+      height: 18px;
+      border-radius: 10px;
+      background: oklch(0.35 0.01 260 / 0.5);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-track.active {
+      background: var(--accent-green);
+    }
+
+    .toggle-track .thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: white;
+      transition: transform 0.2s;
+    }
+
+    .toggle-track.active .thumb {
+      transform: translateX(14px);
+    }
+
+    .input-area {
+      width: 100%;
+      background: oklch(0.18 0.01 260 / 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color 0.15s;
+      min-height: 80px;
+    }
+
+    .input-area:focus {
+      border-color: oklch(0.5 0.01 260 / 0.5);
+    }
+
+    .input-area::placeholder {
+      color: oklch(0.45 0.01 260 / 0.6);
+    }
+
+    .meta-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { createRoot } = await import("react-dom/client");
+    const React = await import("react");
+    const { useMemo } = await import("react");
+    const { create } = await import("zustand");
+    const OpenAI = await import("openai");
+
+    const RESPONSE_FORMATS = [
+      { value: "mp3", label: "MP3", mime: "audio/mpeg" },
+      { value: "opus", label: "Opus (OGG)", mime: "audio/ogg; codecs=opus" },
+      { value: "aac", label: "AAC", mime: "audio/aac" },
+      { value: "flac", label: "FLAC", mime: "audio/flac" },
+      { value: "wav", label: "WAV", mime: "audio/wav" },
+      { value: "pcm", label: "PCM (16-bit)", mime: "audio/L16; rate=24000; channels=1" },
+    ];
+
+    const DEFAULT_BASE_URL = location.origin + "/v1";
+    const INPUT_MAX_LENGTH = 4096;
+    const MAX_HISTORY = 50;
+    const WAVEFORM_SAMPLES = 220;
+
+    function formatDuration(seconds) {
+      if (!seconds || seconds <= 0) return "0:00";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    }
+
+    function truncate(str, len) { len = len || 50; if (str.length <= len) return str; return str.slice(0, len) + "…"; }
+
+    function downloadBlob(blobUrl, filename) {
+      const a = document.createElement("a");
+      a.href = blobUrl; a.download = filename; a.click();
+    }
+
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    async function decodeAudioBuffer(arrayBuffer) {
+      const ctx = getAudioContext();
+      return ctx.decodeAudioData(arrayBuffer.slice(0));
+    }
+
+    function extractWaveform(audioBuffer, numSamples) {
+      numSamples = numSamples || WAVEFORM_SAMPLES;
+      const ch = audioBuffer.getChannelData(0);
+      const step = Math.max(1, Math.floor(ch.length / numSamples));
+      const wf = [];
+      for (let i = 0; i < numSamples; i++) {
+        let sum = 0;
+        const start = i * step;
+        const end = Math.min(start + step, ch.length);
+        const count = end - start || 1;
+        for (let j = start; j < end; j++) sum += Math.abs(ch[j]);
+        wf.push(Math.min(1, (sum / count) * 3));
       }
-      * {
-        font-family:
-          'Inter',
-          system-ui,
-          -apple-system,
-          sans-serif;
-      }
-      code,
-      pre,
-      .font-mono {
-        font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace !important;
-      }
-      .scroll-thin {
-        scrollbar-width: thin;
-        scrollbar-color: oklch(0.35 0.01 260 / 0.3) transparent;
-      }
-      .scroll-thin::-webkit-scrollbar {
-        width: 5px;
-      }
-      .scroll-thin::-webkit-scrollbar-thumb {
-        background: oklch(0.35 0.01 260 / 0.3);
-        border-radius: 3px;
-      }
-      .scroll-thin::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      :root {
-        --bg-primary: #0f0f0f;
-        --bg-card: #1f2937;
-        --bg-hover: #374151;
-        --border-color: #374151;
-        --accent-green: #10b981;
-        --text-primary: #ffffff;
-        --text-secondary: #9ca3af;
-      }
-      body {
-        background: var(--bg-primary);
-        color: var(--text-primary);
-      }
-      .nav-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        border-radius: 6px;
-        font-size: 13px;
-        color: var(--text-secondary);
-        transition: all 0.15s;
-        text-decoration: none;
-        cursor: pointer;
-      }
-      .nav-link:hover {
-        background: oklch(0.25 0.01 260 / 0.5);
-        color: var(--text-primary);
-      }
-      .nav-link.active {
-        background: oklch(0.3 0.01 260 / 0.4);
-        color: var(--text-primary);
-        font-weight: 600;
-      }
-      .nav-section-title {
-        font-size: 11px;
-        font-weight: 600;
-        color: oklch(0.5 0.01 260 / 0.7);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        padding: 16px 14px 6px;
-      }
-      .card-tts {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 10px;
-      }
-      .btn-generate {
-        background: var(--accent-green);
-        color: white;
-        font-weight: 600;
-        font-size: 14px;
-        padding: 10px 28px;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        transition: filter 0.15s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .btn-generate:hover {
-        filter: brightness(1.1);
-      }
-      .btn-generate:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        filter: none;
-      }
-      .param-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        background: oklch(0.22 0.01 260 / 0.5);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 13px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: all 0.15s;
-        white-space: nowrap;
-      }
-      .param-chip:hover {
-        border-color: oklch(0.5 0.01 260 / 0.5);
-      }
-      .param-chip .label {
-        color: var(--text-secondary);
-      }
-      .param-chip select {
-        background: transparent;
-        border: none;
-        color: var(--text-primary);
-        font-weight: 500;
-        font-size: 13px;
-        outline: none;
-        padding: 0;
-        cursor: pointer;
-        appearance: none;
-      }
-      .param-chip select option {
-        background: var(--bg-card);
-        color: var(--text-primary);
-      }
-      .history-item {
-        padding: 10px 14px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background 0.15s;
-      }
-      .history-item:hover {
-        background: var(--bg-hover);
-      }
-      .history-item.active {
-        background: oklch(0.3 0.01 260 / 0.4);
-      }
-      .play-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--accent-green);
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: filter 0.15s;
-        flex-shrink: 0;
-      }
-      .play-btn:hover {
-        filter: brightness(1.15);
-      }
-      .play-btn svg {
-        color: white;
-        width: 18px;
-        height: 18px;
-      }
-      .icon-btn {
-        background: transparent;
-        border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
-        padding: 6px;
-        border-radius: 4px;
-        transition: all 0.15s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .icon-btn:hover {
-        color: var(--text-primary);
-        background: oklch(0.25 0.01 260 / 0.5);
-      }
-      .waveform-container {
-        width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
-        position: relative;
-      }
-      .toggle-track {
-        width: 32px;
-        height: 18px;
-        border-radius: 10px;
-        background: oklch(0.35 0.01 260 / 0.5);
-        position: relative;
-        cursor: pointer;
-        transition: background 0.2s;
-        flex-shrink: 0;
-      }
-      .toggle-track.active {
-        background: var(--accent-green);
-      }
-      .toggle-track .thumb {
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: white;
-        transition: transform 0.2s;
-      }
-      .toggle-track.active .thumb {
-        transform: translateX(14px);
-      }
-      .input-area {
-        width: 100%;
-        background: oklch(0.18 0.01 260 / 0.5);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 12px 16px;
-        color: var(--text-primary);
-        font-size: 14px;
-        line-height: 1.6;
-        resize: none;
-        outline: none;
-        transition: border-color 0.15s;
-        min-height: 80px;
-      }
-      .input-area:focus {
-        border-color: oklch(0.5 0.01 260 / 0.5);
-      }
-      .input-area::placeholder {
-        color: oklch(0.45 0.01 260 / 0.6);
-      }
-      .meta-text {
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-    </style>
-  </head>
+      return wf;
+    } const useStore = create((set, get) => {
+      // Restore persisted keys from localStorage
+      const savedApiKey = (() => { try { return localStorage.getItem("tts_playground_api_key") || ""; } catch { return ""; } })();
+      const savedBaseUrl = (() => { try { return localStorage.getItem("tts_playground_base_url") || DEFAULT_BASE_URL; } catch { return DEFAULT_BASE_URL; } })();
+      let audioEl = null;
+      return {
+        baseUrl: savedBaseUrl,
+        apiKey: savedApiKey,
 
-  <body>
-    <div id="root"></div>
-    <script type="text/babel">
-          const { createRoot } = await import("react-dom/client");
-          const React = await import("react");
-         const { create } = await import("zustand");
-          const OpenAI = await import("openai");
+        showHistory: true,
+        availableModels: [],
+        modelsLoading: false,
 
-          const RESPONSE_FORMATS = [
-            { value: "mp3", label: "MP3", mime: "audio/mpeg" },
-            { value: "opus", label: "Opus (OGG)", mime: "audio/ogg; codecs=opus" },
-            { value: "aac", label: "AAC", mime: "audio/aac" },
-            { value: "flac", label: "FLAC", mime: "audio/flac" },
-            { value: "wav", label: "WAV", mime: "audio/wav" },
-            { value: "pcm", label: "PCM (16-bit)", mime: "audio/L16; rate=24000; channels=1" },
-          ];
+        model: "google-translate",
+        voice: "",
+        speed: 1.0,
+        instructions: '',
+        extraJson: '',
+        responseFormat: "mp3",
+        input: "The quick brown fox jumps over the lazy dog.",
 
-          const DEFAULT_BASE_URL = location.origin + "/v1";
-          const INPUT_MAX_LENGTH = 4096;
-          const MAX_HISTORY = 50;
-          const WAVEFORM_SAMPLES = 220;
+        audioUrl: null,
+        waveformData: null,
+        duration: 0,
+        currentTime: 0,
+        isPlaying: false,
+        playProgress: 0,
+        contentType: null,
+        isDecoding: false,
 
-          function formatDuration(seconds) {
-            if (!seconds || seconds <= 0) return "0:00";
-            const m = Math.floor(seconds / 60);
-            const s = Math.floor(seconds % 60);
-            return `${m}:${s.toString().padStart(2, "0")}`;
-          }
+        isLoading: false,
+        error: null,
+        lastCurl: null,
 
-          function truncate(str, len) { len = len || 50; if (str.length <= len) return str; return str.slice(0, len) + "…"; }
+        generations: [],
+        autoplay: true,
 
-          function downloadBlob(blobUrl, filename) {
-            const a = document.createElement("a");
-            a.href = blobUrl; a.download = filename; a.click();
-          }
+        setBaseUrl: (baseUrl) => { try { localStorage.setItem("tts_playground_base_url", baseUrl); } catch { } set({ baseUrl }); },
+        setApiKey: (apiKey) => { try { localStorage.setItem("tts_playground_api_key", apiKey); } catch { } set({ apiKey }); },
 
-          let audioCtx = null;
-          function getAudioContext() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            return audioCtx;
-          }
+        toggleHistory: () => set((s) => ({ showHistory: !s.showHistory })),
+        setModel: (model) => set((state) => {
+          // Auto-select the first supported voice for the new model.
+          const m = state.availableModels.find((m) => m.id === model);
+          const voices = m?.supported_voices ?? [];
+          return { model, voice: voices.length > 0 ? voices[0] : "" };
+        }),
+        setVoice: (voice) => set({ voice }),
+        setSpeed: (speed) => set({ speed }),
+        setResponseFormat: (fmt) => set({ responseFormat: fmt }),
+        setInstructions: (instructions) => { if (instructions.length <= 4096) set({ instructions }); },
+        setExtraJson: (extraJson) => set({ extraJson }),
+        setInput: (input) => { if (input.length <= INPUT_MAX_LENGTH) set({ input }); },
+        toggleAutoplay: () => set((s) => ({ autoplay: !s.autoplay })),
 
-          async function decodeAudioBuffer(arrayBuffer) {
-            const ctx = getAudioContext();
-            return ctx.decodeAudioData(arrayBuffer.slice(0));
-          }
+        loadGeneration: (gen) => {
+          set({
+            model: gen.model, voice: gen.voice, input: gen.input,
+            audioUrl: gen.audioUrl, waveformData: gen.waveformData,
+            duration: gen.duration, currentTime: 0, isPlaying: false,
+            playProgress: 0, contentType: gen.contentType, error: null, lastCurl: null,
+          });
+        },
 
-          function extractWaveform(audioBuffer, numSamples) {
-            numSamples = numSamples || WAVEFORM_SAMPLES;
-            const ch = audioBuffer.getChannelData(0);
-            const step = Math.max(1, Math.floor(ch.length / numSamples));
-            const wf = [];
-            for (let i = 0; i < numSamples; i++) {
-              let sum = 0;
-              const start = i * step;
-              const end = Math.min(start + step, ch.length);
-              const count = end - start || 1;
-              for (let j = start; j < end; j++) sum += Math.abs(ch[j]);
-              wf.push(Math.min(1, (sum / count) * 3));
-            }
-            return wf;
-         }    const useStore = create((set, get) => {
-            // Restore persisted keys from localStorage
-            const savedApiKey = (() => { try { return localStorage.getItem("tts_playground_api_key") || ""; } catch { return ""; } })();
-            const savedBaseUrl = (() => { try { return localStorage.getItem("tts_playground_base_url") || DEFAULT_BASE_URL; } catch { return DEFAULT_BASE_URL; } })();
-            let audioEl = null;
-            return {
-              baseUrl: savedBaseUrl,
-              apiKey: savedApiKey,
+        clearResult: () => {
+          const { audioUrl } = get();
+          if (audioUrl) URL.revokeObjectURL(audioUrl);
+          set({ audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, error: null, lastCurl: null });
+        },
 
-              showHistory: true,
-              availableModels: [],
-              modelsLoading: false,
-
-              model: "google-translate",
-              voice: "",
-              speed: 1.0,
-              instructions: '',
-              extraJson: '',
-              responseFormat: "mp3",
-              input: "The quick brown fox jumps over the lazy dog.",
-
-              audioUrl: null,
-              waveformData: null,
-              duration: 0,
-              currentTime: 0,
-              isPlaying: false,
-              playProgress: 0,
-              contentType: null,
-              isDecoding: false,
-
-              isLoading: false,
-              error: null,
-              lastCurl: null,
-
-              generations: [],
-              autoplay: true,
-
-              setBaseUrl: (baseUrl) => { try { localStorage.setItem("tts_playground_base_url", baseUrl); } catch {} set({ baseUrl }); },
-              setApiKey: (apiKey) => { try { localStorage.setItem("tts_playground_api_key", apiKey); } catch {} set({ apiKey }); },
-
-              toggleHistory: () => set((s) => ({ showHistory: !s.showHistory })),
-              setModel: (model) => set((state) => {
-                // Auto-select the first supported voice for the new model.
-                const m = state.availableModels.find((m) => m.id === model);
-                const voices = m?.supported_voices ?? [];
-                return { model, voice: voices.length > 0 ? voices[0] : "" };
-              }),
-              setVoice: (voice) => set({ voice }),
-              setSpeed: (speed) => set({ speed }),
-              setResponseFormat: (fmt) => set({ responseFormat: fmt }),
-              setInstructions: (instructions) => { if (instructions.length <= 4096) set({ instructions }); },
-              setExtraJson: (extraJson) => set({ extraJson }),
-              setInput: (input) => { if (input.length <= INPUT_MAX_LENGTH) set({ input }); },
-              toggleAutoplay: () => set((s) => ({ autoplay: !s.autoplay })),
-
-              loadGeneration: (gen) => {
-                set({
-                  model: gen.model, voice: gen.voice, input: gen.input,
-                  audioUrl: gen.audioUrl, waveformData: gen.waveformData,
-                  duration: gen.duration, currentTime: 0, isPlaying: false,
-                  playProgress: 0, contentType: gen.contentType, error: null, lastCurl: null,
-                });
-              },
-
-              clearResult: () => {
-                const { audioUrl } = get();
-                if (audioUrl) URL.revokeObjectURL(audioUrl);
-                set({ audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, error: null, lastCurl: null });
-              },
-
-              fetchModels: async () => {
-                const { baseUrl, apiKey } = get();
-                if (!baseUrl.trim()) return;
-                set({ modelsLoading: true });
-               try {
-                  const clientOptions = { baseURL: baseUrl.replace(/\/+$/, ""), dangerouslyAllowBrowser: true };
-                  if (apiKey.trim()) clientOptions.apiKey = apiKey.trim();
-                  const client = new OpenAI.default(clientOptions);
-                  const page = await client.models.list();
-                  const models = page.data ?? [];
-                  set({ availableModels: models, modelsLoading: false });
-                  // Auto-select if current model is no longer in the list
-                  const { model } = get();
-                  if (!models.find((m) => m.id === model)) {
-                    const m = models[0];
-                    if (m) {
-                      const voices = m.supported_voices ?? [];
-                      set({ model: m.id, voice: voices.length > 0 ? voices[0] : "" });
-                    }
-                  }
-                } catch { set({ modelsLoading: false }); }
-              },
-
-             submit: async () => {
-               const state = get();
-               if (state.isLoading || !state.input.trim()) return;
-
-               if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
-               if (audioEl) { audioEl.pause(); audioEl = null; }
-
-               set({ isLoading: true, error: null, audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, lastCurl: null, isDecoding: false });
-
-                const body = { model: state.model, input: state.input, voice: state.voice, response_format: state.responseFormat, speed: state.speed };
-
-               // Add instructions if set
-               if (state.instructions.trim()) {
-                 body.instructions = state.instructions.trim();
-               }
-
-               // Merge extra JSON params
-               if (state.extraJson.trim()) {
-                 try {
-                   const parsed = JSON.parse(state.extraJson);
-                   Object.assign(body, parsed);
-                 } catch {
-                   // Invalid JSON is silently ignored
-                 }
-               }
-
-                // Build equivalent curl for reference
-               const base = state.baseUrl.replace(/\/+$/, "");
-               const url = `${base}/audio/speech`;
-               const h = [`-H "Content-Type: application/json"`];
-               if (state.apiKey.trim()) h.push(`-H "Authorization: Bearer ${state.apiKey.trim()}"`);
-               const curlCmd = `curl ${url} \\\n  ${h.join(" \\\n  ")} \\\n  -d '${JSON.stringify(body, null, 2)}'`;
-               set({ lastCurl: curlCmd });
-
-                // Use OpenAI SDK to make the request (properly respects apiKey & baseURL)
-              try {
-                  const clientOptions = { baseURL: base, dangerouslyAllowBrowser: true };
-                  if (state.apiKey.trim()) clientOptions.apiKey = state.apiKey.trim();
-                  const client = new OpenAI.default(clientOptions);
-
-                  const speechResponse = await client.audio.speech.create(body);
-
-                  const contentType = speechResponse.headers?.get?.("content-type") || "";
-
-                  const blob = await speechResponse.blob();
-                  const audioUrl = URL.createObjectURL(blob);
-                  set({ isDecoding: true, contentType });
-
-                  try {
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const audioBuffer = await decodeAudioBuffer(arrayBuffer);
-                    const waveformData = extractWaveform(audioBuffer);
-                    const duration = audioBuffer.duration;
-                    const gen = { id: Date.now(), model: state.model, voice: state.voice || "-", input: state.input, audioUrl, waveformData, duration, contentType, createdAt: new Date().toISOString() };
-                    set((s) => ({ audioUrl, waveformData, duration, isDecoding: false, isLoading: false, isPlaying: false, currentTime: 0, playProgress: 0, generations: [gen, ...s.generations].slice(0, MAX_HISTORY) }));
-                    if (get().autoplay) get().play();
-                  } catch {
-                    set({ audioUrl, isDecoding: false, isLoading: false });
-                    if (get().autoplay) get().play();
-                  }
-                } catch (err) {
-                  const msg = err instanceof Error ? err.message : String(err);
-                  set({ error: msg, isLoading: false });
-                }
-              },
-
-              play: () => {
-                const { audioUrl } = get();
-                if (!audioUrl) return;
-                if (audioEl) { audioEl.play(); set({ isPlaying: true }); return; }
-                audioEl = new Audio(audioUrl);
-                audioEl.addEventListener("timeupdate", () => {
-                  const { isPlaying: playing } = get();
-                  if (playing && audioEl) {
-                    const dur = get().duration || audioEl.duration || 0;
-                    const prog = dur > 0 ? audioEl.currentTime / dur : 0;
-                    set({ currentTime: audioEl.currentTime, playProgress: prog });
-                  }
-                });
-                audioEl.addEventListener("ended", () => { set({ isPlaying: false, playProgress: 1 }); });
-                audioEl.addEventListener("loadedmetadata", () => {
-                  if (audioEl && audioEl.duration && !isNaN(audioEl.duration)) set({ duration: audioEl.duration });
-                });
-                audioEl.play().then(() => set({ isPlaying: true })).catch((e) => {
-                  set({ error: `Playback error: ${e.message}`, isPlaying: false }); audioEl = null;
-                });
-              },
-
-              pause: () => { if (audioEl) { audioEl.pause(); set({ isPlaying: false }); } },
-              togglePlay: () => { if (get().isPlaying) get().pause(); else get().play(); },
-              seek: (progress) => {
-                const { duration } = get();
-                if (audioEl && duration > 0) { audioEl.currentTime = progress * duration; set({ currentTime: progress * duration, playProgress: progress }); }
-              },
-            };
-          });    function Sidebar() {
-        const {
-          baseUrl, apiKey, availableModels, instructions, model, voice, extraJson,
-          setBaseUrl, setApiKey, setInstructions, fetchModels, modelsLoading, setVoice, setExtraJson,
-        } = useStore();
-
-        const currentModel = availableModels.find((m) => m.id === model);
-        const voices = currentModel?.supported_voices ?? [];
-
-        return (
-          <div class="w-[250px] shrink-0 border-r border-[#374151] flex flex-col bg-[#0f0f0f] overflow-y-auto scroll-thin">
-            <div class="flex-1 py-3 space-y-4 px-3">
-
-              {/* ── Server Config ── */}
-              <div>
-                <div class="nav-section-title flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                  Server
-                </div>
-                <div class="px-1 space-y-2">
-                  <input type="url" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://localhost:3000" class="input input-xs input-bordered w-full bg-black/20 font-mono text-xs" />
-                  <div class="flex gap-1">
-                    <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="API Key (optional)" class="input input-xs input-bordered flex-1 bg-black/20 font-mono text-xs" />
-                    <button onClick={fetchModels} class="btn btn-xs btn-outline text-white/50 border-white/20 hover:bg-white/10" title="Refresh models">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Extra Parameters ── */}
-              <div>
-                <div class="nav-section-title flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                  Extra Parameters
-                </div>
-                <div class="px-1 space-y-2">
-                  <div>
-                    <label class="text-[10px] text-[#6b7280] block mb-0.5">lang</label>
-                    <input type="text" value={extraJson ? JSON.parse('{' + extraJson.replace(/^{|}$/g, '') + '}').lang || '' : ''} onChange={(e) => {
-                      try {
-                        const current = extraJson ? JSON.parse(extraJson) : {};
-                        current.lang = e.target.value;
-                        setExtraJson(JSON.stringify(current, null, 2));
-                      } catch { /* ignore */ }
-                    }} placeholder="auto" class="input input-xs input-bordered w-full bg-black/20 font-mono text-xs" />
-                  </div>
-                  <div>
-                    <label class="text-[10px] text-[#6b7280] block mb-0.5">Custom JSON</label>
-                    <textarea value={extraJson} onChange={(e) => setExtraJson(e.target.value)} placeholder='{ "lang": "en", "slow": false }' rows={3} class="w-full bg-black/20 border border-[#374151] rounded text-xs font-mono p-2 text-white/80 resize-y min-h-[60px]" />
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Instructions ── */}
-              <div>
-                <div class="nav-section-title flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Instructions
-                </div>
-                <div class="px-1 space-y-1">
-                  <p class="text-[10px] text-[#6b7280] leading-relaxed">Voice customization prompt (max 4096 chars). Supported by <span class="font-mono">tts-1</span> / <span class="font-mono">gpt-4o-mini-tts</span>.</p>
-                  <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Speak in a cheerful, upbeat tone." rows={4} class="w-full bg-black/20 border border-[#374151] rounded text-xs p-2 text-white/80 resize-y min-h-[70px]" />
-                  <div class="flex justify-end">
-                    <span class="text-[10px] font-mono tabular-nums text-[#6b7280]">{instructions.length}/4096</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        );
-      }function WaveformCanvas({ waveformData, duration, currentTime, isPlaying, onSeek }) {
-            const canvasRef = React.useRef(null);
-            const containerRef = React.useRef(null);
-            const animRef = React.useRef(null);
-
-            const draw = (ctx, w, h) => { const { waveformData: wf, currentTime: ct, duration: dur } = useStore.getState();
-              ctx.clearRect(0, 0, w, h);
-              const centerY = h / 2;
-              const progress = ct > 0 && dur > 0 ? ct / dur : 0;
-              const hasData = wf && wf.length > 0;
-              const numBars = hasData ? wf.length : 50;
-              const gap = 2;
-              const barW = Math.max(2, (w - gap * numBars) / numBars);
-              const step = barW + gap;
-              const offset = (w - (numBars * step - gap)) / 2;
-
-              for (let i = 0; i < numBars; i++) {
-                let amplitude = 0.3;
-                if (hasData) amplitude = Math.max(0.08, wf[i] || 0);
-                else {
-                  const phase = (i / numBars) * Math.PI * 4;
-                  amplitude = 0.15 + Math.sin(phase) * 0.12 + Math.random() * 0.03;
-                }
-                const barHeight = Math.max(1, amplitude * h * 0.35);
-                const centerFactor = 1 - Math.abs(i / numBars - 0.5) * 2;
-                const alpha = 0.2 + centerFactor * 0.6;
-                const playRatio = numBars > 1 ? i / numBars : 0;
-                const isPlayed = progress > 0 && playRatio <= progress;
-                const x = offset + i * step;
-                const y = centerY - barHeight / 2;
-                ctx.globalAlpha = alpha;
-                if (isPlayed && hasData) ctx.fillStyle = "#10b981";
-                else if (hasData) ctx.fillStyle = "#6b7280";
-                else ctx.fillStyle = "#4b5563";
-                const radius = Math.min(barW / 2, 2);
-                const path = new Path2D();
-                path.roundRect(x, y, barW, barHeight, radius);
-                ctx.fill(path);
+        fetchModels: async () => {
+          const { baseUrl, apiKey } = get();
+          if (!baseUrl.trim()) return;
+          set({ modelsLoading: true });
+          try {
+            const clientOptions = { baseURL: baseUrl.replace(/\/+$/, ""), dangerouslyAllowBrowser: true };
+            if (apiKey.trim()) clientOptions.apiKey = apiKey.trim();
+            const client = new OpenAI.default(clientOptions);
+            const page = await client.models.list();
+            const models = page.data ?? [];
+            set({ availableModels: models, modelsLoading: false });
+            // Auto-select if current model is no longer in the list
+            const { model } = get();
+            if (!models.find((m) => m.id === model)) {
+              const m = models[0];
+              if (m) {
+                const voices = m.supported_voices ?? [];
+                set({ model: m.id, voice: voices.length > 0 ? voices[0] : "" });
               }
-              ctx.globalAlpha = 1;
-            };
+            }
+          } catch { set({ modelsLoading: false }); }
+        },
 
-            React.useEffect(() => {
-              const canvas = canvasRef.current;
-              const container = containerRef.current;
-              if (!canvas || !container) return;
-              let mounted = true;
+        submit: async () => {
+          const state = get();
+          if (state.isLoading || !state.input.trim()) return;
 
-              const resize = () => {
-                if (!mounted || !container || !canvas) return;
-                const rect = container.getBoundingClientRect();
+          if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+          if (audioEl) { audioEl.pause(); audioEl = null; }
+
+          set({ isLoading: true, error: null, audioUrl: null, waveformData: null, duration: 0, currentTime: 0, isPlaying: false, playProgress: 0, contentType: null, lastCurl: null, isDecoding: false });
+
+          const body = { model: state.model, input: state.input, voice: state.voice, response_format: state.responseFormat, speed: state.speed };
+
+          // Add instructions if set
+          if (state.instructions.trim()) {
+            body.instructions = state.instructions.trim();
+          }
+
+          // Merge extra JSON params
+          if (state.extraJson.trim()) {
+            try {
+              const parsed = JSON.parse(state.extraJson);
+              Object.assign(body, parsed);
+            } catch {
+              // Invalid JSON is silently ignored
+            }
+          }
+
+          // Build equivalent curl for reference
+          const base = state.baseUrl.replace(/\/+$/, "");
+          const url = `${base}/audio/speech`;
+          const h = [`-H "Content-Type: application/json"`];
+          if (state.apiKey.trim()) h.push(`-H "Authorization: Bearer ${state.apiKey.trim()}"`);
+          const curlCmd = `curl ${url} \\\n  ${h.join(" \\\n  ")} \\\n  -d '${JSON.stringify(body, null, 2)}'`;
+          set({ lastCurl: curlCmd });
+
+          // Use OpenAI SDK to make the request (properly respects apiKey & baseURL)
+          try {
+            const clientOptions = { baseURL: base, dangerouslyAllowBrowser: true };
+            if (state.apiKey.trim()) clientOptions.apiKey = state.apiKey.trim();
+            const client = new OpenAI.default(clientOptions);
+
+            const speechResponse = await client.audio.speech.create(body);
+
+            const contentType = speechResponse.headers?.get?.("content-type") || "";
+
+            const blob = await speechResponse.blob();
+            const audioUrl = URL.createObjectURL(blob);
+            set({ isDecoding: true, contentType });
+
+            try {
+              const arrayBuffer = await blob.arrayBuffer();
+              const audioBuffer = await decodeAudioBuffer(arrayBuffer);
+              const waveformData = extractWaveform(audioBuffer);
+              const duration = audioBuffer.duration;
+              const gen = { id: Date.now(), model: state.model, voice: state.voice || "-", input: state.input, audioUrl, waveformData, duration, contentType, createdAt: new Date().toISOString() };
+              set((s) => ({ audioUrl, waveformData, duration, isDecoding: false, isLoading: false, isPlaying: false, currentTime: 0, playProgress: 0, generations: [gen, ...s.generations].slice(0, MAX_HISTORY) }));
+              if (get().autoplay) get().play();
+            } catch {
+              set({ audioUrl, isDecoding: false, isLoading: false });
+              if (get().autoplay) get().play();
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            set({ error: msg, isLoading: false });
+          }
+        },
+
+        play: () => {
+          const { audioUrl } = get();
+          if (!audioUrl) return;
+          if (audioEl) { audioEl.play(); set({ isPlaying: true }); return; }
+          audioEl = new Audio(audioUrl);
+          audioEl.addEventListener("timeupdate", () => {
+            const { isPlaying: playing } = get();
+            if (playing && audioEl) {
+              const dur = get().duration || audioEl.duration || 0;
+              const prog = dur > 0 ? audioEl.currentTime / dur : 0;
+              set({ currentTime: audioEl.currentTime, playProgress: prog });
+            }
+          });
+          audioEl.addEventListener("ended", () => { set({ isPlaying: false, playProgress: 1 }); });
+          audioEl.addEventListener("loadedmetadata", () => {
+            if (audioEl && audioEl.duration && !isNaN(audioEl.duration)) set({ duration: audioEl.duration });
+          });
+          audioEl.play().then(() => set({ isPlaying: true })).catch((e) => {
+            set({ error: `Playback error: ${e.message}`, isPlaying: false }); audioEl = null;
+          });
+        },
+
+        pause: () => { if (audioEl) { audioEl.pause(); set({ isPlaying: false }); } },
+        togglePlay: () => { if (get().isPlaying) get().pause(); else get().play(); },
+        seek: (progress) => {
+          const { duration } = get();
+          if (audioEl && duration > 0) { audioEl.currentTime = progress * duration; set({ currentTime: progress * duration, playProgress: progress }); }
+        },
+      };
+    }); function Sidebar() {
+      const {
+        baseUrl, apiKey, availableModels, instructions, model, voice, extraJson,
+        setBaseUrl, setApiKey, setInstructions, fetchModels, modelsLoading, setVoice, setExtraJson,
+      } = useStore();
+
+      const currentModel = availableModels.find((m) => m.id === model);
+      const voices = currentModel?.supported_voices ?? [];
+
+      const extra_json_obj = useMemo(() => {
+        try { return JSON.parse(extraJson); } catch (e) { return {}; }
+      }, [extraJson]);
+
+      return (
+        <div class="w-[250px] shrink-0 border-r border-[#374151] flex flex-col bg-[#0f0f0f] overflow-y-auto scroll-thin">
+          <div class="flex-1 py-3 space-y-4 px-3">
+
+            {/* ── Server Config ── */}
+            <div>
+              <div class="nav-section-title flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                Server
+              </div>
+              <div class="px-1 space-y-2">
+                <input type="url" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="http://localhost:3000" class="input input-xs input-bordered w-full bg-black/20 font-mono text-xs" />
+                <div class="flex gap-1">
+                  <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="API Key (optional)" class="input input-xs input-bordered flex-1 bg-black/20 font-mono text-xs" />
+                  <button onClick={fetchModels} class="btn btn-xs btn-outline text-white/50 border-white/20 hover:bg-white/10" title="Refresh models">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Extra Parameters ── */}
+            <div>
+              <div class="nav-section-title flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+                Extra Parameters
+              </div>
+              <div class="px-1 space-y-2">
+                <div>
+                  <label class="text-[10px] text-[#6b7280] block mb-0.5">lang</label>
+                  <input type="text" defaultValue={extra_json_obj?.lang || ''} onBlur={(e) => {
+                    try {
+                      const current = extraJson ? JSON.parse(extraJson) : {};
+                      current.lang = e.target.value;
+                      setExtraJson(JSON.stringify(current, null, 2));
+                    } catch { /* ignore */ }
+                  }} placeholder="auto" class="input input-xs input-bordered w-full bg-black/20 font-mono text-xs" />
+                </div>
+                <div>
+                  <label class="text-[10px] text-[#6b7280] block mb-0.5">Custom JSON</label>
+                  <textarea defaultValue={extraJson} onChange={(e) => setExtraJson(e.target.value)} placeholder='{ "lang": "en", "slow": false }' rows={3} class="w-full bg-black/20 border border-[#374151] rounded text-xs font-mono p-2 text-white/80 resize-y min-h-[60px]" />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Instructions ── */}
+            <div>
+              <div class="nav-section-title flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                Instructions
+              </div>
+              <div class="px-1 space-y-1">
+                <p class="text-[10px] text-[#6b7280] leading-relaxed">Voice customization prompt (max 4096 chars). Supported by <span class="font-mono">tts-1</span> / <span class="font-mono">gpt-4o-mini-tts</span>.</p>
+                <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="e.g. Speak in a cheerful, upbeat tone." rows={4} class="w-full bg-black/20 border border-[#374151] rounded text-xs p-2 text-white/80 resize-y min-h-[70px]" />
+                <div class="flex justify-end">
+                  <span class="text-[10px] font-mono tabular-nums text-[#6b7280]">{instructions.length}/4096</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    } function WaveformCanvas({ waveformData, duration, currentTime, isPlaying, onSeek }) {
+      const canvasRef = React.useRef(null);
+      const containerRef = React.useRef(null);
+      const animRef = React.useRef(null);
+
+      const draw = (ctx, w, h) => {
+        const { waveformData: wf, currentTime: ct, duration: dur } = useStore.getState();
+        ctx.clearRect(0, 0, w, h);
+        const centerY = h / 2;
+        const progress = ct > 0 && dur > 0 ? ct / dur : 0;
+        const hasData = wf && wf.length > 0;
+        const numBars = hasData ? wf.length : 50;
+        const gap = 2;
+        const barW = Math.max(2, (w - gap * numBars) / numBars);
+        const step = barW + gap;
+        const offset = (w - (numBars * step - gap)) / 2;
+
+        for (let i = 0; i < numBars; i++) {
+          let amplitude = 0.3;
+          if (hasData) amplitude = Math.max(0.08, wf[i] || 0);
+          else {
+            const phase = (i / numBars) * Math.PI * 4;
+            amplitude = 0.15 + Math.sin(phase) * 0.12 + Math.random() * 0.03;
+          }
+          const barHeight = Math.max(1, amplitude * h * 0.35);
+          const centerFactor = 1 - Math.abs(i / numBars - 0.5) * 2;
+          const alpha = 0.2 + centerFactor * 0.6;
+          const playRatio = numBars > 1 ? i / numBars : 0;
+          const isPlayed = progress > 0 && playRatio <= progress;
+          const x = offset + i * step;
+          const y = centerY - barHeight / 2;
+          ctx.globalAlpha = alpha;
+          if (isPlayed && hasData) ctx.fillStyle = "#10b981";
+          else if (hasData) ctx.fillStyle = "#6b7280";
+          else ctx.fillStyle = "#4b5563";
+          const radius = Math.min(barW / 2, 2);
+          const path = new Path2D();
+          path.roundRect(x, y, barW, barHeight, radius);
+          ctx.fill(path);
+        }
+        ctx.globalAlpha = 1;
+      };
+
+      React.useEffect(() => {
+        const canvas = canvasRef.current;
+        const container = containerRef.current;
+        if (!canvas || !container) return;
+        let mounted = true;
+
+        const resize = () => {
+          if (!mounted || !container || !canvas) return;
+          const rect = container.getBoundingClientRect();
+          const w = rect.width;
+          const h = rect.height || 140;
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+          canvas.style.width = `${w}px`;
+          canvas.style.height = "140px";
+          const ctx = canvas.getContext("2d");
+          ctx.scale(dpr, dpr);
+          draw(ctx, w, h);
+        };
+
+        resize();
+        window.addEventListener("resize", resize);
+
+        if (isPlaying) {
+          const loop = () => {
+            if (!mounted) return;
+            const state = useStore.getState();
+            const { currentTime: ct, duration: dur, isPlaying: play } = state;
+            if (play) {
+              const cvs = canvasRef.current;
+              const ctEl = containerRef.current;
+              if (cvs && ctEl) {
+                const rect = ctEl.getBoundingClientRect();
                 const w = rect.width;
                 const h = rect.height || 140;
+                const ctx = cvs.getContext("2d");
                 const dpr = window.devicePixelRatio || 1;
-                canvas.width = w * dpr;
-                canvas.height = h * dpr;
-                canvas.style.width = `${w}px`;
-                canvas.style.height = "140px";
-                const ctx = canvas.getContext("2d");
+                cvs.width = w * dpr;
+                cvs.height = h * dpr;
                 ctx.scale(dpr, dpr);
                 draw(ctx, w, h);
-              };
-
-              resize();
-              window.addEventListener("resize", resize);
-
-              if (isPlaying) {
-                const loop = () => {
-                  if (!mounted) return;
-                  const state = useStore.getState();
-                  const { currentTime: ct, duration: dur, isPlaying: play } = state;
-                  if (play) {
-                    const cvs = canvasRef.current;
-                    const ctEl = containerRef.current;
-                    if (cvs && ctEl) {
-                      const rect = ctEl.getBoundingClientRect();
-                      const w = rect.width;
-                      const h = rect.height || 140;
-                      const ctx = cvs.getContext("2d");
-                      const dpr = window.devicePixelRatio || 1;
-                      cvs.width = w * dpr;
-                      cvs.height = h * dpr;
-                      ctx.scale(dpr, dpr);
-                      draw(ctx, w, h);
-                    }
-                    animRef.current = requestAnimationFrame(loop);
-                  }
-                };
-                animRef.current = requestAnimationFrame(loop);
               }
+              animRef.current = requestAnimationFrame(loop);
+            }
+          };
+          animRef.current = requestAnimationFrame(loop);
+        }
 
-              return () => {
-                mounted = false;
-                window.removeEventListener("resize", resize);
-                if (animRef.current) cancelAnimationFrame(animRef.current);
-              };
-            }, [waveformData, currentTime, duration, isPlaying]);
+        return () => {
+          mounted = false;
+          window.removeEventListener("resize", resize);
+          if (animRef.current) cancelAnimationFrame(animRef.current);
+        };
+      }, [waveformData, currentTime, duration, isPlaying]);
 
-            const handleClick = React.useCallback((e) => {
-              if (!containerRef.current || !duration || duration <= 0) return;
-              const rect = containerRef.current.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              onSeek(Math.max(0, Math.min(1, x / rect.width)));
-            }, [duration, onSeek]);
+      const handleClick = React.useCallback((e) => {
+        if (!containerRef.current || !duration || duration <= 0) return;
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        onSeek(Math.max(0, Math.min(1, x / rect.width)));
+      }, [duration, onSeek]);
 
-            return (
-              <div ref={containerRef} class="waveform-container" onClick={handleClick} style={{ cursor: duration > 0 ? "pointer" : "default" }}>
-                <canvas ref={canvasRef} style={{ height: "140px", display: "block" }} />
-              </div>
-            );
-          }    function PlayerControls() {
-            const { audioUrl, duration, currentTime, isPlaying, isLoading, isDecoding, model, voice, speed, responseFormat, togglePlay, clearResult } = useStore();
-            const canPlay = audioUrl && !isLoading && !isDecoding;
-            return (
-              <div class="flex flex-col items-center gap-3">
-                <div class="flex items-center gap-4">
-                  <button class="play-btn" onClick={togglePlay} disabled={!canPlay} style={{ opacity: canPlay ? 1 : 0.3, cursor: canPlay ? "pointer" : "not-allowed" }}>
-                    {isPlaying ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    )}
-                  </button>
-                  <button class="icon-btn" onClick={() => { if (audioUrl) downloadBlob(audioUrl, `tts-${model}-${Date.now()}.${responseFormat === "opus" ? "ogg" : responseFormat}`); }} disabled={!audioUrl} style={{ opacity: audioUrl ? 1 : 0.3 }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </button>
-                  <button class="icon-btn" onClick={clearResult}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-                <div class="meta-text flex items-center gap-1.5 flex-wrap justify-center">
-                  <span class="font-medium text-white/80">{model}</span>
-                  <span class="text-white/30">·</span>
-                  <span>{duration ? formatDuration(duration) : "—:——"}</span>
-                  <span class="text-white/30">·</span>
-                  <span>{voice || "—"}</span>
-                  <span class="text-white/30">·</span>
-                  <span>{speed.toFixed(2)}x</span>
-                  <span class="text-white/30">·</span>
-                  <span class="uppercase">{responseFormat}</span>
-                </div>
-                {(isLoading || isDecoding) && (
-                  <div class="flex items-center gap-2 text-xs text-[#9ca3af]">
-                    <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    {isDecoding ? "Decoding audio…" : "Generating…"}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          function InputForm() {
-            const { model, voice, speed, responseFormat, input, availableModels, isLoading, setModel, setVoice, setSpeed, setResponseFormat, setInput, submit } = useStore();
-            const inputLen = input.length;
-            const currentModel = availableModels.find((m) => m.id === model);
-            const voices = currentModel?.supported_voices ?? [];
-
-            return (
-              <div class="card-tts p-4 space-y-3">
-                <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="TestingCatalog rocks..." rows={3} class="input-area" />
-                {inputLen > 0 && (
-                  <div class="flex justify-end -mt-2">
-                    <span class={`text-[11px] font-mono tabular-nums ${inputLen > INPUT_MAX_LENGTH * 0.9 ? "text-red-400 font-semibold" : "text-[#9ca3af]"}`}>{inputLen}/{INPUT_MAX_LENGTH}</span>
-                  </div>
-                )}
-                <div class="flex flex-wrap items-center gap-2">
-                  <div class="param-chip">
-                    <span class="label">🎤</span>
-                    <select value={model} onChange={(e) => setModel(e.target.value)}>
-                      {availableModels.length > 0 ? availableModels.map((m) => <option key={m.id} value={m.id}>{m.id}</option>) : <><option value="tts-1">tts-1</option><option value="google-translate">google-translate</option></>}
-                    </select>
-                  </div>
-                  <div class="param-chip">
-                    <span class="label">🗣</span>
-                    <select value={voice} onChange={(e) => setVoice(e.target.value)}>
-                      {voices.length > 0 ? voices.map((v) => <option key={v} value={v}>{v}</option>) : <><option value="">Default</option><option value="alloy">alloy</option><option value="echo">echo</option><option value="fable">fable</option><option value="onyx">onyx</option><option value="nova">nova</option><option value="shimmer">shimmer</option></>}
-                    </select>
-                  </div>
-                  <div class="param-chip">
-                    <span class="label">Speed</span>
-                    <select value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))}>
-                      {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0].map((s) => <option key={s} value={s}>{s}x</option>)}
-                    </select>
-                  </div>
-                  <div class="param-chip">
-                    <span class="label">Format</span>
-                    <select value={responseFormat} onChange={(e) => setResponseFormat(e.target.value)}>
-                      {RESPONSE_FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between pt-1">
-                  <button onClick={submit} disabled={isLoading || !input.trim()} class="btn-generate">
-                    {isLoading ? (
-                      <><svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Generating</>
-                    ) : (
-                      <><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>Generate</>
-                    )}
-                  </button>
-                  <kbd class="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#9ca3af] bg-[#1f2937] border border-[#374151] rounded"><span>⌘</span><span>↵</span></kbd>
-                </div>
-              </div>
-            );
-          }    function HistoryPanel() {
-            const { generations, autoplay, audioUrl, toggleAutoplay, loadGeneration } = useStore();
-            return (
-              <div class="w-[280px] shrink-0 border-l border-[#374151] flex flex-col bg-[#0f0f0f] overflow-y-auto scroll-thin">
-                <div class="flex items-center justify-between px-4 py-3 border-b border-[#374151]">
-                  <h2 class="text-sm font-semibold text-[#9ca3af]">Generations</h2>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[11px] text-[#6b7280]">Autoplay</span>
-                    <div class={`toggle-track ${autoplay ? "active" : ""}`} onClick={toggleAutoplay}><div class="thumb" /></div>
-                  </div>
-                </div>
-                <div class="flex-1 py-2 space-y-0.5">
-                  {generations.length === 0 ? (
-                    <div class="px-4 py-8 text-center text-xs text-[#6b7280]">No generations yet.<br />Configure and click Generate.</div>
-                  ) : generations.map((gen) => (
-                    <div key={gen.id} class={`history-item ${audioUrl === gen.audioUrl ? "active" : ""}`} onClick={() => loadGeneration(gen)}>
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#374151]/50 text-[#9ca3af]">{gen.voice || gen.model}</span>
-                        <span class="text-[10px] text-[#6b7280]">{gen.duration ? formatDuration(gen.duration) : "—:——"}</span>
-                      </div>
-                      <p class="text-xs text-[#9ca3af] leading-relaxed">{truncate(gen.input, 60)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-
-          function TopNav() {
-        const { toggleHistory } = useStore();
-        return (
-          <header class="h-[56px] shrink-0 bg-[#1a1a1a] border-b border-[#374151] flex items-center px-4 gap-3">
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <div class="w-7 h-7 rounded-lg bg-[#10b981]/20 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-              </div>
-              <span class="text-sm font-bold text-white">TTS Playground</span>
+      return (
+        <div ref={containerRef} class="waveform-container" onClick={handleClick} style={{ cursor: duration > 0 ? "pointer" : "default" }}>
+          <canvas ref={canvasRef} style={{ height: "140px", display: "block" }} />
+        </div>
+      );
+    } function PlayerControls() {
+      const { audioUrl, duration, currentTime, isPlaying, isLoading, isDecoding, model, voice, speed, responseFormat, togglePlay, clearResult } = useStore();
+      const canPlay = audioUrl && !isLoading && !isDecoding;
+      return (
+        <div class="flex flex-col items-center gap-3">
+          <div class="flex items-center gap-4">
+            <button class="play-btn" onClick={togglePlay} disabled={!canPlay} style={{ opacity: canPlay ? 1 : 0.3, cursor: canPlay ? "pointer" : "not-allowed" }}>
+              {isPlaying ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+              )}
+            </button>
+            <button class="icon-btn" onClick={() => { if (audioUrl) downloadBlob(audioUrl, `tts-${model}-${Date.now()}.${responseFormat === "opus" ? "ogg" : responseFormat}`); }} disabled={!audioUrl} style={{ opacity: audioUrl ? 1 : 0.3 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+            </button>
+            <button class="icon-btn" onClick={clearResult}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+          <div class="meta-text flex items-center gap-1.5 flex-wrap justify-center">
+            <span class="font-medium text-white/80">{model}</span>
+            <span class="text-white/30">·</span>
+            <span>{duration ? formatDuration(duration) : "—:——"}</span>
+            <span class="text-white/30">·</span>
+            <span>{voice || "—"}</span>
+            <span class="text-white/30">·</span>
+            <span>{speed.toFixed(2)}x</span>
+            <span class="text-white/30">·</span>
+            <span class="uppercase">{responseFormat}</span>
+          </div>
+          {(isLoading || isDecoding) && (
+            <div class="flex items-center gap-2 text-xs text-[#9ca3af]">
+              <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+              {isDecoding ? "Decoding audio…" : "Generating…"}
             </div>
-            <div class="hidden md:flex items-center gap-1 ml-6">
-              <a class="nav-link text-xs !text-white/80 !font-semibold">Playground</a>
-              <a class="nav-link text-xs">Docs</a>
-              <a class="nav-link text-xs">API Reference</a>
+          )}
+        </div>
+      );
+    }
+
+    function InputForm() {
+      const { model, voice, speed, responseFormat, input, availableModels, isLoading, setModel, setVoice, setSpeed, setResponseFormat, setInput, submit } = useStore();
+      const inputLen = input.length;
+      const currentModel = availableModels.find((m) => m.id === model);
+      const voices = currentModel?.supported_voices ?? [];
+
+      return (
+        <div class="card-tts p-4 space-y-3">
+          <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="TestingCatalog rocks..." rows={3} class="input-area" />
+          {inputLen > 0 && (
+            <div class="flex justify-end -mt-2">
+              <span class={`text-[11px] font-mono tabular-nums ${inputLen > INPUT_MAX_LENGTH * 0.9 ? "text-red-400 font-semibold" : "text-[#9ca3af]"}`}>{inputLen}/{INPUT_MAX_LENGTH}</span>
             </div>
-            <div class="flex items-center gap-1 ml-auto">
-              <button onClick={toggleHistory} class="icon-btn" title="Toggle history">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          )}
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="param-chip">
+              <span class="label">🎤</span>
+              <select value={model} onChange={(e) => setModel(e.target.value)}>
+                {availableModels.length > 0 ? availableModels.map((m) => <option key={m.id} value={m.id}>{m.id}</option>) : <><option value="tts-1">tts-1</option><option value="google-translate">google-translate</option></>}
+              </select>
+            </div>
+            <div class="param-chip">
+              <span class="label">🗣</span>
+              <select value={voice} onChange={(e) => setVoice(e.target.value)}>
+                {voices.length > 0 ? voices.map((v) => <option key={v} value={v}>{v}</option>) : <><option value="">Default</option><option value="alloy">alloy</option><option value="echo">echo</option><option value="fable">fable</option><option value="onyx">onyx</option><option value="nova">nova</option><option value="shimmer">shimmer</option></>}
+              </select>
+            </div>
+            <div class="param-chip">
+              <span class="label">Speed</span>
+              <select value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))}>
+                {[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 3.5, 4.0].map((s) => <option key={s} value={s}>{s}x</option>)}
+              </select>
+            </div>
+            <div class="param-chip">
+              <span class="label">Format</span>
+              <select value={responseFormat} onChange={(e) => setResponseFormat(e.target.value)}>
+                {RESPONSE_FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-1">
+            <button onClick={submit} disabled={isLoading || !input.trim()} class="btn-generate">
+              {isLoading ? (
+                <><svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>Generating</>
+              ) : (
+                <><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>Generate</>
+              )}
+            </button>
+            <kbd class="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#9ca3af] bg-[#1f2937] border border-[#374151] rounded"><span>⌘</span><span>↵</span></kbd>
+          </div>
+        </div>
+      );
+    } function HistoryPanel() {
+      const { generations, autoplay, audioUrl, toggleAutoplay, loadGeneration } = useStore();
+      return (
+        <div class="w-[280px] shrink-0 border-l border-[#374151] flex flex-col bg-[#0f0f0f] overflow-y-auto scroll-thin">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-[#374151]">
+            <h2 class="text-sm font-semibold text-[#9ca3af]">Generations</h2>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-[#6b7280]">Autoplay</span>
+              <div class={`toggle-track ${autoplay ? "active" : ""}`} onClick={toggleAutoplay}><div class="thumb" /></div>
+            </div>
+          </div>
+          <div class="flex-1 py-2 space-y-0.5">
+            {generations.length === 0 ? (
+              <div class="px-4 py-8 text-center text-xs text-[#6b7280]">No generations yet.<br />Configure and click Generate.</div>
+            ) : generations.map((gen) => (
+              <div key={gen.id} class={`history-item ${audioUrl === gen.audioUrl ? "active" : ""}`} onClick={() => loadGeneration(gen)}>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#374151]/50 text-[#9ca3af]">{gen.voice || gen.model}</span>
+                  <span class="text-[10px] text-[#6b7280]">{gen.duration ? formatDuration(gen.duration) : "—:——"}</span>
+                </div>
+                <p class="text-xs text-[#9ca3af] leading-relaxed">{truncate(gen.input, 60)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function TopNav() {
+      const { toggleHistory } = useStore();
+      return (
+        <header class="h-[56px] shrink-0 bg-[#1a1a1a] border-b border-[#374151] flex items-center px-4 gap-3">
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="w-7 h-7 rounded-lg bg-[#10b981]/20 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+            </div>
+            <span class="text-sm font-bold text-white">TTS Playground</span>
+          </div>
+          <div class="hidden md:flex items-center gap-1 ml-6">
+            <a class="nav-link text-xs !text-white/80 !font-semibold">Playground</a>
+            <a class="nav-link text-xs">Docs</a>
+            <a class="nav-link text-xs">API Reference</a>
+          </div>
+          <div class="flex items-center gap-1 ml-auto">
+            <button onClick={toggleHistory} class="icon-btn" title="Toggle history">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            </button>
+            <button class="icon-btn" title="Settings">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+            </button>
+          </div>
+        </header>
+      );
+    } function ErrorToast() {
+      const { error, clearResult } = useStore();
+      if (!error) return null;
+      React.useEffect(() => {
+        if (error) { const t = setTimeout(() => useStore.setState({ error: null }), 6000); return () => clearTimeout(t); }
+      }, [error]);
+      return (
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50" style={{ animation: "fadeIn 0.2s ease-out" }}>
+          <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-900/90 border border-red-700/50 text-red-200 text-xs shadow-xl backdrop-blur-sm max-w-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></svg>
+            <span class="flex-1">{error}</span>
+            <button onClick={clearResult} class="text-red-300 hover:text-red-100 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+          <style>{`@keyframes fadeIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
+        </div>
+      );
+    }
+
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+
+      componentDidCatch(error, info) {
+        console.error('Playground crashed:', error, info);
+      }
+
+      handleReset = () => {
+        // 静默恢复：仅重置错误状态，不刷新页面
+        this.setState({ hasError: false, error: null });
+      };
+
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div
+              style={{
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                background: '#0f0f0f',
+                color: '#e5e7eb',
+                padding: '24px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                Something went wrong
+              </h2>
+              <p
+                style={{
+                  fontSize: '13px',
+                  color: '#9ca3af',
+                  marginBottom: '8px',
+                  maxWidth: '400px',
+                }}
+              >
+                {this.state.error?.message || 'An unexpected error occurred.'}
+              </p>
+              <button
+                onClick={this.handleReset}
+                style={{
+                  marginTop: '16px',
+                  padding: '8px 20px',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                重试
               </button>
-              <button class="icon-btn" title="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-              </button>
             </div>
-          </header>
-        );
-      }function ErrorToast() {
-            const { error, clearResult } = useStore();
-            if (!error) return null;
-            React.useEffect(() => {
-              if (error) { const t = setTimeout(() => useStore.setState({ error: null }), 6000); return () => clearTimeout(t); }
-            }, [error]);
-            return (
-              <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50" style={{ animation: "fadeIn 0.2s ease-out" }}>
-                <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-900/90 border border-red-700/50 text-red-200 text-xs shadow-xl backdrop-blur-sm max-w-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-                  <span class="flex-1">{error}</span>
-                  <button onClick={clearResult} class="text-red-300 hover:text-red-100 shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  </button>
-                </div>
-                <style>{`@keyframes fadeIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }`}</style>
-              </div>
-            );
-          }
+          );
+        }
 
-          class ErrorBoundary extends React.Component {
-            constructor(props) {
-              super(props);
-              this.state = { hasError: false, error: null };
-            }
-            static getDerivedStateFromError(error) {
-              return { hasError: true, error };
-            }
-            componentDidCatch(error, info) {
-              console.error("Playground crashed:", error, info);
-            }
-            render() {
-              if (this.state.hasError) {
-                return React.createElement("div", {
-                  style: {
-                    height: "100vh", display: "flex", alignItems: "center",
-                    justifyContent: "center", flexDirection: "column",
-                    background: "#0f0f0f", color: "#e5e7eb", padding: "24px",
-                    textAlign: "center",
-                  }
-                },
-                  React.createElement("div", { style: { fontSize: "32px", marginBottom: "12px" } }, "\u26A0"),
-                  React.createElement("h2", { style: { fontSize: "18px", fontWeight: 600, marginBottom: "8px" } }, "Something went wrong"),
-                  React.createElement("p", { style: { fontSize: "13px", color: "#9ca3af", marginBottom: "8px", maxWidth: "400px" } },
-                    this.state.error?.message || "An unexpected error occurred."
-                  ),
-                  React.createElement("button", {
-                    onClick: () => { this.setState({ hasError: false, error: null }); window.location.reload(); },
-                    style: {
-                      marginTop: "16px", padding: "8px 20px", background: "#10b981",
-                      color: "white", border: "none", borderRadius: "6px",
-                      fontSize: "14px", fontWeight: 600, cursor: "pointer",
-                    }
-                  }, "Reload")
-                );
-              }
-              return this.props.children;
-            }
-          }
+        return this.props.children;
+      }
+    }
 
-          function App() { const { showHistory, fetchModels, audioUrl, duration, currentTime, isPlaying, waveformData, seek, isDecoding, isLoading } = useStore();
+    function App() {
+      const { showHistory, fetchModels, audioUrl, duration, currentTime, isPlaying, waveformData, seek, isDecoding, isLoading } = useStore();
 
-            React.useEffect(() => { fetchModels(); }, []);
+      React.useEffect(() => { fetchModels(); }, []);
 
-            return (
-              <ErrorBoundary>
-              <div class="h-screen flex flex-col bg-[#0f0f0f]">
-                <TopNav />
-                <div class="flex flex-1 overflow-hidden">
-                  <Sidebar />
-                  <div class="flex-1 flex flex-col overflow-hidden">
-                    <div class="flex-1 overflow-y-auto scroll-thin">
-                      <div class="max-w-[800px] mx-auto px-6 pt-8 pb-4 space-y-4">
-                        <div class="relative">
-                          {(isLoading || isDecoding) && !audioUrl && (
-                            <div class="waveform-container h-[140px] flex items-center justify-center">
-                              <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                            </div>
-                          )}
-                          <WaveformCanvas waveformData={waveformData} duration={duration} currentTime={currentTime} isPlaying={isPlaying} onSeek={seek} />
+      return (
+        <ErrorBoundary>
+          <div class="h-screen flex flex-col bg-[#0f0f0f]">
+            <TopNav />
+            <div class="flex flex-1 overflow-hidden">
+              <Sidebar />
+              <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 overflow-y-auto scroll-thin">
+                  <div class="max-w-[800px] mx-auto px-6 pt-8 pb-4 space-y-4">
+                    <div class="relative">
+                      {(isLoading || isDecoding) && !audioUrl && (
+                        <div class="waveform-container h-[140px] flex items-center justify-center">
+                          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
                         </div>
-                        <PlayerControls />
-                      </div>
+                      )}
+                      <WaveformCanvas waveformData={waveformData} duration={duration} currentTime={currentTime} isPlaying={isPlaying} onSeek={seek} />
                     </div>
-                    <div class="shrink-0 px-6 pb-4 max-w-[800px] mx-auto w-full">
-                      <InputForm />
-                    </div>
+                    <PlayerControls />
                   </div>
-                  {showHistory && <HistoryPanel />}
                 </div>
-                <ErrorToast />
+                <div class="shrink-0 px-6 pb-4 max-w-[800px] mx-auto w-full">
+                  <InputForm />
+                </div>
               </div>
-              </ErrorBoundary>
-            );
-          }
+              {showHistory && <HistoryPanel />}
+            </div>
+            <ErrorToast />
+          </div>
+        </ErrorBoundary>
+      );
+    }
 
-          createRoot(document.getElementById("root")).render(<App />);
-    </script>
-  </body>
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+
 </html>
