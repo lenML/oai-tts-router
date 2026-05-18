@@ -20,7 +20,8 @@
  *   - speed (optional): speaking rate [0.25 - 2.0]
  *   - pitch (optional): pitch in semitones [-20.0 - 20.0]
  *   - gain (optional): volume gain in dB [-96.0 - 16.0]
- *   - prompt (optional): voice style prompt
+ *   - prompt (optional): voice style prompt (deprecated, use instructions instead)
+ *   - instructions (optional): voice style instructions (alias for prompt)
  *   - token (optional): per-request token, bypasses config and retry
  */
 
@@ -44,6 +45,7 @@ const gemini_tts_schema = tts_request_base.extend({
   pitch: z.number().optional(),
   gain: z.number().optional(),
   prompt: z.string().optional(),
+  instructions: z.string().optional(),
   token: z.string().optional(),
 });
 
@@ -294,7 +296,7 @@ function build_tts_payload(
   (body.audioConfig as Record<string, unknown>)['audioEncoding'] = encoding;
   (body.audioConfig as Record<string, unknown>)['sampleRateHertz'] = sample_rate;
 
-  const prompt = extra['prompt'] as string | undefined;
+  const prompt = (extra['instructions'] ?? extra['prompt']) as string | undefined;
   if (prompt) {
     (body.input as Record<string, unknown>).prompt = prompt;
   }

@@ -189,6 +189,18 @@ describe('GeminiTtsProvider', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should accept instructions parameter (alias for prompt)', () => {
+      const result = provider.request_schema!.safeParse({
+        model: 'gemini-tts',
+        input: 'Hello',
+        instructions: 'Speak like a pirate',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as Record<string, unknown>).instructions).toBe('Speak like a pirate');
+      }
+    });
+
     it('should accept speed, pitch, gain parameters', () => {
       const result = provider.request_schema!.safeParse({
         model: 'gemini-tts',
@@ -303,6 +315,32 @@ describe('GeminiTtsProvider', () => {
 
       const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
       expect(call_body.input.prompt).toBe('Say warmly');
+    });
+
+    it('should use instructions as prompt in request body', async () => {
+      mock_json_success('YXVkaW8=');
+
+      await provider.speak({
+        model: 'gemini-tts',
+        input: 'Hello',
+        extra: { instructions: 'Speak like a pirate' },
+      });
+
+      const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
+      expect(call_body.input.prompt).toBe('Speak like a pirate');
+    });
+
+    it('should prefer instructions over prompt', async () => {
+      mock_json_success('YXVkaW8=');
+
+      await provider.speak({
+        model: 'gemini-tts',
+        input: 'Hello',
+        extra: { prompt: 'Old style', instructions: 'New style' },
+      });
+
+      const call_body = JSON.parse(mock_request.mock.calls[0][0].data);
+      expect(call_body.input.prompt).toBe('New style');
     });
 
     it('should include gender in request body', async () => {
