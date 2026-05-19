@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html data-theme="dark" lang="en" class="h-full">
 
 <head>
@@ -375,10 +375,13 @@
       // Restore persisted keys from localStorage
       const savedApiKey = (() => { try { return localStorage.getItem("tts_playground_api_key") || ""; } catch { return ""; } })();
       const savedBaseUrl = (() => { try { return localStorage.getItem("tts_playground_base_url") || DEFAULT_BASE_URL; } catch { return DEFAULT_BASE_URL; } })();
+      const savedVolume = (() => { try { const v = parseFloat(localStorage.getItem("tts_playground_volume")); return isNaN(v) ? 1.0 : Math.max(0, Math.min(1, v)); } catch { return 1.0; } })();
       let audioEl = null;
       return {
         baseUrl: savedBaseUrl,
         apiKey: savedApiKey,
+        volume: savedVolume,
+        muted: false,
 
         showHistory: true,
         availableModels: [],
@@ -425,6 +428,17 @@
         setExtraJson: (extraJson) => set({ extraJson }),
         setInput: (input) => { if (input.length <= INPUT_MAX_LENGTH) set({ input }); },
         toggleAutoplay: () => set((s) => ({ autoplay: !s.autoplay })),
+
+        setVolume: (v) => {
+          const vol = Math.max(0, Math.min(1, v));
+          try { localStorage.setItem("tts_playground_volume", String(vol)); } catch {}
+          if (audioEl) audioEl.volume = vol;
+          set({ volume: vol, muted: vol === 0 });
+        },
+        setMuted: (muted) => {
+          if (audioEl) audioEl.muted = muted;
+          set({ muted });
+        },
 
         loadGeneration: (gen) => {
           set({
@@ -535,6 +549,8 @@
           if (!audioUrl) return;
           if (audioEl) { audioEl.play(); set({ isPlaying: true }); return; }
           audioEl = new Audio(audioUrl);
+          audioEl.volume = get().volume;
+          audioEl.muted = get().muted;
           audioEl.addEventListener("timeupdate", () => {
             const { isPlaying: playing } = get();
             if (playing && audioEl) {
@@ -747,7 +763,7 @@
         </div>
       );
     } function PlayerControls() {
-      const { audioUrl, duration, currentTime, isPlaying, isLoading, isDecoding, model, voice, speed, responseFormat, togglePlay, clearResult } = useStore();
+      const { audioUrl, duration, currentTime, isPlaying, isLoading, isDecoding, model, voice, speed, responseFormat, volume, muted, togglePlay, clearResult, setVolume, setMuted } = useStore();
       const canPlay = audioUrl && !isLoading && !isDecoding;
       return (
         <div class="flex flex-col items-center gap-3">
@@ -765,6 +781,18 @@
             <button class="icon-btn" onClick={clearResult}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
+            <div class="flex items-center gap-1.5 ml-1 pl-2 border-l border-[#374151]">
+              <button class="icon-btn" onClick={() => setMuted(!muted)}>
+                {muted || volume === 0 ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
+                ) : volume < 0.5 ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
+                )}
+              </button>
+              <input type="range" min="0" max="1" step="0.05" value={muted ? 0 : volume} onChange={(e) => setVolume(parseFloat(e.target.value))} class="w-20 h-1 accent-[#10b981] cursor-pointer" />
+            </div>
           </div>
           <div class="meta-text flex items-center gap-1.5 flex-wrap justify-center">
             <span class="font-medium text-white/80">{model}</span>
