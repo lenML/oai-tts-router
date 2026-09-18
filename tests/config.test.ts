@@ -5,6 +5,7 @@ const MANAGED_ENV = [
   'CONFIG_PATH',
   'XAI_CONSOLE_COOKIE',
   'GEMINI_TOKEN',
+  'ELEVENLABS_API_KEY',
   'FLARESOLVERR_URL',
   'FLARESOLVERR_PROXY',
   'GROK_BROWSER_VERSION',
@@ -43,6 +44,7 @@ describe('config environment overrides', () => {
     process.env['CONFIG_PATH'] = path.join(process.cwd(), '__missing_config__.json');
     process.env['XAI_CONSOLE_COOKIE'] = 'test-cookie';
     process.env['GEMINI_TOKEN'] = 'test-token';
+    process.env['ELEVENLABS_API_KEY'] = 'eleven-key-a,eleven-key-b';
 
     vi.resetModules();
     const { load_config } = await import('../src/config.js');
@@ -50,5 +52,6 @@ describe('config environment overrides', () => {
 
     expect(config.providers['grok-console-tts']?.cookies).toEqual(['test-cookie']);
     expect(config.providers['gemini-tts']?.tokens).toEqual(['test-token']);
+    expect(config.providers['elevenlabs']?.keys).toEqual(['eleven-key-a', 'eleven-key-b']);
   });
 });

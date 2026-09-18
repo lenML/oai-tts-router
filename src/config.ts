@@ -118,6 +118,16 @@ function merge_env(file_cfg: Partial<AppConfig>): AppConfig {
       tokens: [process.env['GEMINI_TOKEN']],
     };
   }
+  if (process.env['ELEVENLABS_API_KEY']) {
+    const keys = process.env['ELEVENLABS_API_KEY']
+      .split(',')
+      .map(key => key.trim())
+      .filter(Boolean);
+    cfg.providers['elevenlabs'] = {
+      ...cfg.providers['elevenlabs'],
+      keys,
+    };
+  }
   if (
     process.env['FLARESOLVERR_URL'] ||
     process.env['FLARESOLVERR_PROXY'] ||

@@ -22,6 +22,7 @@
   "providers": {
     "openai-fm": { "base_url": "https://www.openai.fm" },
     "gemini-tts": { "tokens": ["your-recaptcha-token"] },
+    "elevenlabs": {},
     "grok-console-tts": {
       "cookies": ["your-cookie"],
       "flaresolverr_url": "http://127.0.0.1:8191"
@@ -90,6 +91,7 @@ Origin 不包含末尾 `/`。修改后需重启服务。GitHub Pages 前端可�
 | `API_KEY`              | -      | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
 | `XAI_CONSOLE_COOKIE`   | -      | Grok Console TTS cookie，覆盖 `providers.grok-console-tts.cookies`              |
 | `GEMINI_TOKEN`         | -      | Gemini TTS reCAPTCHA token，覆盖 `providers.gemini-tts.tokens`                  |
+| `ELEVENLABS_API_KEY`   | -      | ElevenLabs API key；多个 key 用逗号分隔，覆盖 `providers.elevenlabs.keys`       |
 | `FLARESOLVERR_URL`     | -      | Grok Console 遇到 Cloudflare challenge 时使用的 FlareSolverr 地址               |
 | `FLARESOLVERR_PROXY`   | -      | FlareSolverr 与 Grok 请求使用的同出口代理                                       |
 | `GROK_BROWSER_VERSION` | `146`  | Grok Console 默认 Chrome 指纹版本                                               |

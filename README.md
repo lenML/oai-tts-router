@@ -43,6 +43,7 @@ docker compose up -d
 | `openai-fm-tts`    | OpenAI.fm                     | 中上质量，无鉴权，IP敏感，有限速                                     | [docs](/docs/providers/openai-fm.md)        |
 | `grok-console-tts` | x.ai Console                  | 高质量，有鉴权，IP敏感，速度很快，应该有限速但是额度很高             | [docs](/docs/providers/grok-console-tts.md) |
 | `gemini-tts`       | Google Cloud TTS (Gemini-TTS) | 超高质量，有鉴权，IP敏感，速度一般，限制文本长度，有限速，有超时中断 | [docs](/docs/providers/gemini-tts.md)       |
+| `elevenlabs`       | ElevenLabs                    | 高质量，有鉴权，支持请求级多 key 轮换                                | [docs](/docs/providers/elevenlabs.md)       |
 
 ## Config
 

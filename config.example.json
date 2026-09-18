@@ -23,7 +23,8 @@
     },
     "gemini-tts": {
       "tokens": ["your-recaptcha-token-here"]
-    }
+    },
+    "elevenlabs": {}
   },
   "default_params": {
     "openai-fm-tts": {
@@ -42,6 +43,11 @@
       "voice": "Kore",
       "encoding": "LINEAR16",
       "language": "en-us"
+    },
+    "elevenlabs": {
+      "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+      "model_id": "eleven_multilingual_v2",
+      "output_format": "mp3_44100_128"
     }
   }
 }

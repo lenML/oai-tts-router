@@ -12,6 +12,7 @@ import { EdgeTtsProvider } from './providers/edge-tts.js';
 import { OpenaiFmProvider } from './providers/openai-fm.js';
 import { GrokTtsProvider } from './providers/grok-console-tts.js';
 import { GeminiTtsProvider } from './providers/gemini-tts.js';
+import { ElevenlabsProvider } from './providers/elevenlabs.js';
 import { init_auth } from './middleware/auth.js';
 import { init_cache } from './middleware/cache.js';
 import { logger } from './utils/logger.js';
@@ -36,6 +37,9 @@ function main(): void {
   );
   registry.register(
     new GeminiTtsProvider(with_outbound_proxy(config.providers?.['gemini-tts'], config.proxy)),
+  );
+  registry.register(
+    new ElevenlabsProvider(with_outbound_proxy(config.providers?.['elevenlabs'], config.proxy)),
   );
   registry.register(new EdgeTtsProvider());
   registry.register(new OpenaiFmProvider(config.providers?.['openai-fm']));

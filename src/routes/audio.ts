@@ -16,6 +16,7 @@
  */
 
 import { Router } from 'express';
+import { createHash } from 'node:crypto';
 import type { Response } from 'express';
 
 import { load_config } from '../config.js';
@@ -109,7 +110,7 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
     // Build cache key BEFORE stripping feature flags so they are included
     const ckey_body = { ...validated_body };
     delete ckey_body['no_cache'];
-    const ckey = cache_key(ckey_body);
+    const ckey = cache_key(cache_safe_body(ckey_body));
 
     // Strip extended params from validated_body so they don't pollute `extra`
     delete validated_body['no_cache'];
@@ -323,6 +324,24 @@ async function attempt_speak_with_fallback(
       502,
     )
   );
+}
+
+function cache_safe_body(body: Record<string, unknown>): Record<string, unknown> {
+  const safe = { ...body };
+  for (const field of ['api_key', 'keys', 'token', 'cookie']) {
+    const value = safe[field];
+    if (typeof value === 'string') {
+      safe[field] = credential_hash(value);
+    } else if (Array.isArray(value)) {
+      const items: unknown[] = value;
+      safe[field] = items.map(item => (typeof item === 'string' ? credential_hash(item) : item));
+    }
+  }
+  return safe;
+}
+
+function credential_hash(value: string): string {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
 function is_fallback_eligible(err: unknown): boolean {
