@@ -6,6 +6,12 @@ import { defineConfig, loadEnv } from 'vite'
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url))
 
+function normalizeBasePath(path: string): string {
+  const trimmed = path.trim()
+  if (!trimmed || trimmed === '/') return '/'
+  return `/${trimmed.replace(/^\/+|\/+$/g, '')}/`
+}
+
 function readConfigPort(): string | undefined {
   const configPath = fileURLToPath(new URL('../config.json', import.meta.url))
   if (!existsSync(configPath)) return undefined
@@ -24,9 +30,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, projectRoot, '')
   const apiPort = env['PORT'] || readConfigPort() || '3000'
   const proxyTarget = env['VITE_PROXY_TARGET'] || `http://127.0.0.1:${apiPort}`
+  const basePath = normalizeBasePath(env['VITE_BASE_PATH'] || '/playground/')
 
   return {
-    base: '/playground/',
+    base: basePath,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

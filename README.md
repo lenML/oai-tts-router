@@ -54,6 +54,17 @@ docker compose up -d
 - 支持中、英、日、韩四种语言，自动识别浏览器语言，也可在界面切换。语言会写入 URL，如 `?lang=zh`。
 - 生成历史保存在浏览器 IndexedDB，默认最多 30 条，可在设置中调整。
 
+### GitHub Pages
+
+仓库包含 `.github/workflows/deploy-playground.yml`，推送到 `main` 后会自动构建并部署 `playground/`。
+
+在 GitHub 仓库的 `Settings -> Pages` 中将 Source 设为 `GitHub Actions`。可选添加 Repository Variables：
+
+- `VITE_API_BASE_URL`: 公开的 TTS Router 地址，例如 `https://tts.example.com/v1`
+- `VITE_BASE_PATH`: 自定义域名部署在根路径时设为 `/`
+
+未配置 `VITE_API_BASE_URL` 时，打开 Playground 后在 Settings 中手动填写 Base URL。后端已启用 CORS。
+
 鉴权：如果配置了 apikey ，开启 playground 会弹窗用户名密码，其中用户名随便填，密码填 apikey
 
 ## Dev

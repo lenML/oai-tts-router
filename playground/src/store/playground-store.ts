@@ -12,7 +12,10 @@ import {
 } from '@/lib/history-db'
 import type { ConnectionState, Generation, ModelInfo } from '@/types'
 
-const DEFAULT_BASE_URL = `${window.location.origin}/v1`
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
+const DEFAULT_BASE_URL = configuredBaseUrl
+  ? configuredBaseUrl.replace(/\/+$/, '')
+  : `${window.location.origin}/v1`
 const DEFAULT_HISTORY_LIMIT = 30
 
 const FALLBACK_MODELS: ModelInfo[] = [
