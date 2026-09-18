@@ -19,6 +19,7 @@ const playground_dir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
   'playground',
+  'dist',
 );
 
 /** Create an Express application instance */

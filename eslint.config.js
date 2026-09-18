@@ -58,6 +58,13 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/', 'node_modules/', 'docs/', 'eslint.config.js'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      'playground/dist/',
+      'playground/node_modules/',
+      'docs/',
+      'eslint.config.js',
+    ],
   },
 );

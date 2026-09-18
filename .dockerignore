@@ -9,8 +9,8 @@
 # Excluded source-adjacent paths
 .git
 .gitignore
-node_modules
-dist
+**/node_modules
+**/dist
 .env
 .env.*
 !.env.example

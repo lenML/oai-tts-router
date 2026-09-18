@@ -57,6 +57,20 @@ docker compose up -d
 ```bash
 pnpm install
 pnpm dev
+
+
+`pnpm dev` starts the API and Vite Playground together:
+
+- API: `http://localhost:4567` or the configured `port`
+- Playground: `http://localhost:5173/playground/`
+
+Vite reads `PORT` and `config.json.port` automatically for its `/v1` proxy. Set `VITE_PROXY_TARGET` to override the target. `VITE_DEV_PORT` changes the Vite port.
+
+Use `pnpm dev:server` or `pnpm dev:playground` to run either process alone.
+
+Production build:
+
+```bash
 pnpm build
 pnpm start
 ```

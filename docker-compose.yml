@@ -1,4 +1,4 @@
-﻿# Docker Compose for oai-tts-router.
+# Docker Compose for oai-tts-router.
 #
 # Production:
 #   docker compose up -d
@@ -45,15 +45,18 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - '17777:17777'
+      - '5173:5173'
     environment:
       - PORT=17777
       - NODE_ENV=development
       - API_KEY=${API_KEY:-}
       - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - VITE_PROXY_TARGET=http://127.0.0.1:17777
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/playground/node_modules
       # config.json is mounted automatically via the host volume (.:/app).
       # Create it on the host at ./config.json and it will be picked up.
       - models:/app/models
