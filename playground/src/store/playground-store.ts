@@ -13,9 +13,7 @@ import {
 import type { ConnectionState, Generation, ModelInfo } from '@/types'
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
-const DEFAULT_BASE_URL = configuredBaseUrl
-  ? configuredBaseUrl.replace(/\/+$/, '')
-  : `${window.location.origin}/v1`
+const DEFAULT_BASE_URL = configuredBaseUrl?.replace(/\/+$/, '') ?? ''
 const DEFAULT_HISTORY_LIMIT = 30
 
 const FALLBACK_MODELS: ModelInfo[] = [
@@ -223,10 +221,16 @@ export const usePlaygroundStore = create<PlaygroundState>()(
 
       fetchModels: async () => {
         const { baseUrl, apiKey } = get()
+        const normalizedBaseUrl = baseUrl.trim()
+        if (!normalizedBaseUrl) {
+          set({ connection: 'idle', modelsError: '' })
+          return
+        }
+
         set({ connection: 'loading', modelsError: '' })
 
         try {
-          const models = await fetchModels(baseUrl, apiKey)
+          const models = await fetchModels(normalizedBaseUrl, apiKey)
           const currentModel = get().model
           const selected = models.find(model => model.id === currentModel) ?? models[0]
           set({
@@ -250,6 +254,11 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         const trimmedInput = state.input.trim()
         if (!trimmedInput) {
           throw new Error(i18n.t('error.emptyInput'))
+        }
+
+        const normalizedBaseUrl = state.baseUrl.trim()
+        if (!normalizedBaseUrl) {
+          throw new Error(i18n.t('error.baseUrlRequired'))
         }
 
         let extra: Record<string, unknown> = {}
@@ -278,7 +287,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         set({ isGenerating: true, isDecoding: false, isPlaying: false })
 
         try {
-          const response = await createSpeech(state.baseUrl, state.apiKey, body, controller.signal)
+          const response = await createSpeech(normalizedBaseUrl, state.apiKey, body, controller.signal)
           const audioUrl = URL.createObjectURL(response.blob)
           set({ isGenerating: false, isDecoding: true })
 

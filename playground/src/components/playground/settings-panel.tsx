@@ -36,6 +36,8 @@ export function SettingsPanel({ className }: { className?: string }) {
   const setHistoryLimit = usePlaygroundStore(state => state.setHistoryLimit)
   const fetchModels = usePlaygroundStore(state => state.fetchModels)
 
+  const normalizedBaseUrl = baseUrl.trim()
+
   const extraJsonError = useMemo(() => {
     if (!extraJson.trim()) return ''
     try {
@@ -50,6 +52,8 @@ export function SettingsPanel({ className }: { className?: string }) {
   }, [extraJson, t])
 
   const refreshModels = async () => {
+    if (!normalizedBaseUrl) return
+
     try {
       await fetchModels()
       toast.success(t('toast.modelsUpdated'))
@@ -109,7 +113,12 @@ export function SettingsPanel({ className }: { className?: string }) {
               autoComplete="off"
             />
           </div>
-          <Button variant="outline" className="w-full" onClick={refreshModels} disabled={connection === 'loading'}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={refreshModels}
+            disabled={!normalizedBaseUrl || connection === 'loading'}
+          >
             {connection === 'loading' ? <Loader2 className="animate-spin" /> : <RefreshCw />}
             {t('settings.refresh')}
           </Button>

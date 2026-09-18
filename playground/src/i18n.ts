@@ -127,6 +127,7 @@ const resources = {
       },
       error: {
         emptyInput: 'Enter text to synthesize.',
+        baseUrlRequired: 'Enter a Base URL first.',
         invalidExtra: 'Advanced params must be a JSON object.',
       },
     },
@@ -246,6 +247,7 @@ const resources = {
       },
       error: {
         emptyInput: '请输入要合成的文本。',
+        baseUrlRequired: '请先填写 Base URL。',
         invalidExtra: '高级参数必须是 JSON 对象。',
       },
     },
@@ -365,6 +367,7 @@ const resources = {
       },
       error: {
         emptyInput: '合成するテキストを入力してください。',
+        baseUrlRequired: '先に Base URL を入力してください。',
         invalidExtra: '詳細パラメータは JSON オブジェクトにしてください。',
       },
     },
@@ -484,6 +487,7 @@ const resources = {
       },
       error: {
         emptyInput: '합성할 텍스트를 입력하세요.',
+        baseUrlRequired: '먼저 Base URL을 입력하세요.',
         invalidExtra: '고급 파라미터는 JSON 객체여야 합니다.',
       },
     },

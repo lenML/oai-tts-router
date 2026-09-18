@@ -27,6 +27,8 @@ export default function App() {
   useEffect(() => {
     if (didFetchModels.current) return
     didFetchModels.current = true
+    if (!usePlaygroundStore.getState().baseUrl.trim()) return
+
     let cancelled = false
     let retryTimer: ReturnType<typeof setTimeout> | undefined
 
