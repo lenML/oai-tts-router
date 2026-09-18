@@ -9,10 +9,17 @@
 3. 配置到 config.json：
 
 ```json
-"providers": { "grok-console-tts": { "cookies": ["sso=xxx; sso-rw=yyy;"] } }
+"providers": {
+  "grok-console-tts": {
+    "cookies": ["sso=xxx; sso-rw=yyy;"],
+    "flaresolverr_url": "http://127.0.0.1:8191"
+  }
+}
 ```
 
-支持配置多个 Cookie，每次请求随机选取，重试时自动切换。
+支持配置多个 Cookie，每次请求随机选取，重试时自动切换。遇到 Cloudflare challenge 时，如配置 `flaresolverr_url`，会刷新浏览器 clearance cookie。随后 provider 自动通过 `/v1/dpop/token` 获取 access token，并为每次 TTS 请求生成 ES256 DPoP proof。
+
+`flaresolverr_proxy` 用于让 FlareSolverr 与后续 TTS 请求走同一出口 IP；也可通过环境变量 `FLARESOLVERR_URL`、`FLARESOLVERR_PROXY`、`GROK_BROWSER_VERSION` 覆盖。
 
 ## 支持的参数
 

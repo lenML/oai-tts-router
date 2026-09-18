@@ -62,11 +62,11 @@ describe('GeminiTtsProvider', () => {
 
     it('should return models list', () => {
       expect(provider.get_models()).toEqual([
+        'gemini-tts',
         'gemini-3.1-flash-tts-preview',
         'gemini-2.5-flash-tts',
         'gemini-2.5-pro-tts',
         'gemini-2.5-flash-lite-preview-tts',
-        'chirp3-hd',
       ]);
     });
 
@@ -79,7 +79,7 @@ describe('GeminiTtsProvider', () => {
       expect(provider.supports_model('gemini-2.5-flash-tts')).toBe(true);
       expect(provider.supports_model('gemini-2.5-pro-tts')).toBe(true);
       expect(provider.supports_model('gemini-2.5-flash-lite-preview-tts')).toBe(true);
-      expect(provider.supports_model('chirp3-hd')).toBe(true);
+      expect(provider.supports_model('chirp3-hd')).toBe(false);
     });
 
     it('should not support unknown models', () => {
@@ -214,7 +214,7 @@ describe('GeminiTtsProvider', () => {
   });
 
   describe('speak', () => {
-    it('should return audio/L16 for LINEAR16 encoding JSON response', async () => {
+    it('should return WAV for LINEAR16 encoding JSON response', async () => {
       mock_json_success('dGVzdC1hdWRpbw=='); // "test-audio" in base64
 
       const result = await provider.speak({
@@ -223,7 +223,7 @@ describe('GeminiTtsProvider', () => {
         extra: {},
       });
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(result.data.toString()).toBe('test-audio');
     });
 
@@ -237,6 +237,37 @@ describe('GeminiTtsProvider', () => {
       });
 
       expect(result.content_type).toBe('audio/mpeg');
+    });
+
+    it('should reject unsupported encodings instead of silently falling back', async () => {
+      await expect(
+        provider.speak({
+          model: 'gemini-tts',
+          input: 'Hello',
+          extra: { encoding: 'MP3_64_KBPS' },
+        }),
+      ).rejects.toMatchObject({
+        status_code: 400,
+        param: 'encoding',
+      });
+      expect(mock_request).not.toHaveBeenCalled();
+    });
+
+    it('should preserve non-retryable upstream status', async () => {
+      mock_request.mockResolvedValue({
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+        rawBody: Buffer.from('bad request'),
+      });
+
+      await expect(
+        provider.speak({
+          model: 'gemini-tts',
+          input: 'Hello',
+          extra: {},
+        }),
+      ).rejects.toMatchObject({ status_code: 400 });
+      expect(mock_request).toHaveBeenCalledTimes(1);
     });
 
     it('should default to Kore voice', async () => {
@@ -457,7 +488,7 @@ describe('GeminiTtsProvider', () => {
         extra: { encoding: 'LINEAR16', sample_rate: 48000 },
       });
 
-      expect(result.content_type).toBe('audio/L16; rate=48000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
     });
   });
 
@@ -485,7 +516,7 @@ describe('GeminiTtsProvider', () => {
         extra: {},
       });
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(result.data.toString()).toBe('audio');
       expect(mock_request).toHaveBeenCalledTimes(2);
       const firstUrl = mock_request.mock.calls[0][0].url;
@@ -515,7 +546,7 @@ describe('GeminiTtsProvider', () => {
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(mock_request).toHaveBeenCalledTimes(2);
     });
 
@@ -541,7 +572,7 @@ describe('GeminiTtsProvider', () => {
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(mock_request).toHaveBeenCalledTimes(2);
     });
 
@@ -567,7 +598,7 @@ describe('GeminiTtsProvider', () => {
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(mock_request).toHaveBeenCalledTimes(2);
     });
 
@@ -589,7 +620,7 @@ describe('GeminiTtsProvider', () => {
       await vi.advanceTimersByTimeAsync(16000);
       const error = await promise;
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain('after 3 retries');
+      expect((error as Error).message).toContain('HTTP 429');
     });
 
     it('should retry on network error and succeed', async () => {
@@ -608,7 +639,7 @@ describe('GeminiTtsProvider', () => {
       await vi.advanceTimersByTimeAsync(3000);
       const result = await promise;
 
-      expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+      expect(result.content_type).toBe('audio/wav');
       expect(result.data.toString()).toBe('audio');
       expect(mock_request).toHaveBeenCalledTimes(2);
     });
@@ -659,7 +690,7 @@ describe('GeminiTtsProvider', () => {
         await vi.advanceTimersByTimeAsync(3000);
         const result = await promise;
 
-        expect(result.content_type).toBe('audio/L16; rate=24000; channels=1');
+        expect(result.content_type).toBe('audio/wav');
         expect(mock_request).toHaveBeenCalledTimes(2);
 
         const first_token = mock_request.mock.calls[0][0].url;

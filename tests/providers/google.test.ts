@@ -135,6 +135,24 @@ describe('GoogleTtsProvider', () => {
       expect(getAudioUrl).toHaveBeenCalledWith('你好世界', { lang: 'zh-CN', slow: false });
     });
 
+    it('should preserve upstream error status', async () => {
+      mock_fetch.mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        arrayBuffer: () => Promise.resolve(Buffer.from('bad request')),
+      });
+
+      await expect(
+        provider.speak({
+          model: 'google-translate',
+          input: 'Hello',
+          extra: { lang: 'en' },
+        }),
+      ).rejects.toMatchObject({ status_code: 400 });
+      expect(mock_fetch).toHaveBeenCalledTimes(1);
+    });
+
     it('should send browser-like headers', async () => {
       mock_audio_response('data');
 

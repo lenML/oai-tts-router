@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
-import { OpenAiError, openai_error_from_zod, error_handler } from '../src/errors.ts';
+import {
+  OpenAiError,
+  openai_error_from_zod,
+  error_handler,
+  upstream_error_details,
+} from '../src/errors.ts';
 import type { Request, Response, NextFunction } from 'express';
 
 describe('OpenAiError', () => {
@@ -80,6 +85,36 @@ describe('openai_error_from_zod', () => {
       const err = openai_error_from_zod(result.error);
       expect(err.param).toBeNull();
     }
+  });
+});
+
+describe('upstream_error_details', () => {
+  it('should extract OpenAI-style metadata', () => {
+    const details = upstream_error_details(
+      Buffer.from(
+        JSON.stringify({
+          error: {
+            message: 'Unsupported voice',
+            param: 'voice',
+            code: 'voice_not_supported',
+          },
+        }),
+      ),
+    );
+
+    expect(details).toMatchObject({
+      message: 'Unsupported voice',
+      param: 'voice',
+      code: 'voice_not_supported',
+    });
+  });
+
+  it('should preserve malformed response text as raw detail', () => {
+    expect(upstream_error_details(Buffer.from('upstream failed'))).toMatchObject({
+      param: null,
+      code: null,
+      raw: 'upstream failed',
+    });
   });
 });
 

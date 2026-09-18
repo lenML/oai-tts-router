@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { tts_request_base } from './schema.js';
+import { tts_request_extended } from './schema.js';
 
 /** OpenAI-supported voices (from the official API) */
 export const OPENAI_VOICES = [
@@ -30,7 +30,7 @@ export const OPENAI_VOICES = [
 export const OPENAI_RESPONSE_FORMATS = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
 
 /** OpenAI TTS request schema - extends the base with OpenAI-specific fields. */
-export const openai_tts_schema = tts_request_base.extend({
+export const openai_tts_schema = tts_request_extended.extend({
   voice: z.string().min(1, { message: 'The `voice` parameter is required.' }),
   response_format: z.enum(OPENAI_RESPONSE_FORMATS).optional(),
   speed: z.number().min(0.25).max(4.0).optional(),

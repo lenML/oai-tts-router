@@ -3,7 +3,7 @@
  */
 
 import 'dotenv/config';
-import { load_config } from './config.js';
+import { load_config, with_outbound_proxy } from './config.js';
 import { set_log_level } from './utils/logger.js';
 import { create_app } from './server.js';
 import { ProviderRegistry } from './providers/registry.js';
@@ -29,11 +29,19 @@ function main(): void {
 
   const registry = new ProviderRegistry();
 
-  registry.register(new GoogleTtsProvider(config.providers?.['google-translate']));
-  registry.register(new GeminiTtsProvider(config.providers?.['gemini-tts']));
+  registry.register(
+    new GoogleTtsProvider(
+      with_outbound_proxy(config.providers?.['google-translate'], config.proxy),
+    ),
+  );
+  registry.register(
+    new GeminiTtsProvider(with_outbound_proxy(config.providers?.['gemini-tts'], config.proxy)),
+  );
   registry.register(new EdgeTtsProvider());
   registry.register(new OpenaiFmProvider(config.providers?.['openai-fm']));
-  registry.register(new GrokTtsProvider(config.providers?.['grok-console-tts']));
+  registry.register(
+    new GrokTtsProvider(with_outbound_proxy(config.providers?.['grok-console-tts'], config.proxy)),
+  );
 
   logger.info('providers registered', {
     providers: registry.get_provider_names(),

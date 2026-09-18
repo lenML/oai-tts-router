@@ -5,6 +5,7 @@
 ## config.json
 
 复制 `config.example.json` 为 `config.json` 然后编辑：
+
 ```json
 {
   "port": 4567,
@@ -20,10 +21,10 @@
   "cache": { "tts_size": "100mb" },
   "providers": {
     "openai-fm": { "base_url": "https://www.openai.fm" },
-    "gemini-tts": { "api_key": "your-gemini-key" },
+    "gemini-tts": { "tokens": ["your-recaptcha-token"] },
     "grok-console-tts": {
       "cookies": ["your-cookie"],
-      "api_key": "your-api-key"
+      "flaresolverr_url": "http://127.0.0.1:8191"
     }
   },
   "default_params": {
@@ -32,17 +33,17 @@
 }
 ```
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `port` | number | `3000` | 监听端口 |
-| `log_level` | string | `"info"` | debug / info / warn / error |
-| `cors.origin` | string[] | `["*"]` | 允许跨域访问的 Origin 列表，`["*"]` 允许全部，空数组禁止跨域 |
-| `api_keys` | string[] | `[]` | 鉴权 key 列表，空=无鉴权 |
-| `proxy.http` | string | - | 出站 HTTP 代理 |
-| `proxy.https` | string | - | 出站 HTTPS 代理 |
-| `cache.tts_size` | string | - | 响应缓存大小（如 `"100mb"`） |
-| `providers` | object | `{}` | 各 Provider 特定配置（详细见各 provider 文档） |
-| `default_params` | object | `{}` | 每个模型的默认请求参数（见下文） |
+| 字段             | 类型     | 默认值   | 说明                                                         |
+| ---------------- | -------- | -------- | ------------------------------------------------------------ |
+| `port`           | number   | `3000`   | 监听端口                                                     |
+| `log_level`      | string   | `"info"` | debug / info / warn / error                                  |
+| `cors.origin`    | string[] | `["*"]`  | 允许跨域访问的 Origin 列表，`["*"]` 允许全部，空数组禁止跨域 |
+| `api_keys`       | string[] | `[]`     | 鉴权 key 列表，空=无鉴权                                     |
+| `proxy.http`     | string   | -        | 出站 HTTP 代理                                               |
+| `proxy.https`    | string   | -        | 出站 HTTPS 代理                                              |
+| `cache.tts_size` | string   | -        | 响应缓存大小（如 `"100mb"`）                                 |
+| `providers`      | object   | `{}`     | 各 Provider 特定配置（详细见各 provider 文档）               |
+| `default_params` | object   | `{}`     | 每个模型的默认请求参数（见下文）                             |
 
 请求时可通过 `no_cache: true` 参数跳过缓存，强制调用 TTS 后端（详见 [API 文档](api.md)）。
 
@@ -50,15 +51,16 @@
 
 支持以下请求级特性（无需全局配置，在请求体中传入对应参数即可）：
 
-| 功能 | 请求参数 | 说明 |
-| --- | --- | --- |
-| 长文本切割 | `text_split: true` | 自动切分长文本并拼接音频，详见 [API 文档](api.md#长文本切割text_split) |
-| 自动降级 | `fallback_models: [...]` | 主模型失败时自动尝试备用模型，详见 [API 文档](api.md#自动路由降级fallback_models) |
+| 功能       | 请求参数                 | 说明                                                                              |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------- |
+| 长文本切割 | `text_split: true`       | 自动切分长文本并拼接音频，详见 [API 文档](api.md#长文本切割text_split)            |
+| 自动降级   | `fallback_models: [...]` | 主模型失败时自动尝试备用模型，详见 [API 文档](api.md#自动路由降级fallback_models) |
 
 ## 鉴权
 
 配置 `api_keys`（或环境变量 `API_KEY`）后，服务会开启鉴权。未配置时所有请求免鉴权通过。
 鉴权方式根据路径不同：
+
 - **API 路由**（`/v1/*`）→ **Bearer 鉴权**。请求头需携带 `Authorization: Bearer <key>`。
 - **Playground**（`/playground`）→ **Basic 鉴权**。Username 任意，Password 填入任一 API key 即可。
 
@@ -82,16 +84,21 @@ Origin 不包含末尾 `/`。修改后需重启服务。GitHub Pages 前端可�
 
 环境变量优先级高于 config.json：
 
-| 变量 | 默认值 | 说明 |
-| --- | --- | --- |
-| `PORT` | `3000` | 监听端口 |
-| `API_KEY` | - | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
-| `TTS_CACHE_SIZE` | `0` | 如 `"100mb"`，`"0"` 禁用 |
-| `LOG_LEVEL` | `info` | 日志级别 |
-| `CORS_ORIGIN` | `*` | 允许的 Origin，逗号分隔，如 `https://lenml.github.io,http://localhost:5173` |
-| `HTTP_PROXY` | - | 出站 HTTP 代理 |
-| `HTTPS_PROXY` | - | 出站 HTTPS 代理 |
-| `CONFIG_PATH` | - | 自定义 config.json 路径 |
+| 变量                   | 默认值 | 说明                                                                            |
+| ---------------------- | ------ | ------------------------------------------------------------------------------- |
+| `PORT`                 | `3000` | 监听端口                                                                        |
+| `API_KEY`              | -      | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
+| `XAI_CONSOLE_COOKIE`   | -      | Grok Console TTS cookie，覆盖 `providers.grok-console-tts.cookies`              |
+| `GEMINI_TOKEN`         | -      | Gemini TTS reCAPTCHA token，覆盖 `providers.gemini-tts.tokens`                  |
+| `FLARESOLVERR_URL`     | -      | Grok Console 遇到 Cloudflare challenge 时使用的 FlareSolverr 地址               |
+| `FLARESOLVERR_PROXY`   | -      | FlareSolverr 与 Grok 请求使用的同出口代理                                       |
+| `GROK_BROWSER_VERSION` | `146`  | Grok Console 默认 Chrome 指纹版本                                               |
+| `TTS_CACHE_SIZE`       | `0`    | 如 `"100mb"`，`"0"` 禁用                                                        |
+| `LOG_LEVEL`            | `info` | 日志级别                                                                        |
+| `CORS_ORIGIN`          | `*`    | 允许的 Origin，逗号分隔，如 `https://lenml.github.io,http://localhost:5173`     |
+| `HTTP_PROXY`           | -      | 出站 HTTP 代理                                                                  |
+| `HTTPS_PROXY`          | -      | 出站 HTTPS 代理                                                                 |
+| `CONFIG_PATH`          | -      | 自定义 config.json 路径                                                         |
 
 ## 默认请求参数（default_params）
 

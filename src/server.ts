@@ -11,7 +11,7 @@ import { Router } from 'express';
 import { register_audio_routes } from './routes/audio.js';
 import { register_models_routes } from './routes/models.js';
 import { ProviderRegistry } from './providers/registry.js';
-import { error_handler } from './errors.js';
+import { error_handler, OpenAiError } from './errors.js';
 import { bearer_auth, basic_auth } from './middleware/auth.js';
 import { request_logger } from './middleware/request-logger.js';
 import type { CorsConfig } from './config.js';
@@ -36,7 +36,7 @@ export function create_app(
 
   // Global middleware
   app.use(cors({ origin: allowed_origins }));
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
   app.use(request_logger);
 
   // Register routes
@@ -46,6 +46,30 @@ export function create_app(
   // Apply Bearer auth to all /v1/* API routes
   app.use('/v1', bearer_auth);
   app.use(router);
+
+  app.all('/v1/audio/speech', (_req, res) => {
+    res.setHeader('Allow', 'POST');
+    res.status(405).json(method_not_allowed().to_response());
+  });
+  app.all('/v1/models', (_req, res) => {
+    res.setHeader('Allow', 'GET');
+    res.status(405).json(method_not_allowed().to_response());
+  });
+  app.all('/v1/models/:model', (_req, res) => {
+    res.setHeader('Allow', 'GET');
+    res.status(405).json(method_not_allowed().to_response());
+  });
+
+  app.use('/v1', (_req, res) => {
+    const error = new OpenAiError(
+      'The requested API endpoint does not exist.',
+      'invalid_request_error',
+      null,
+      'not_found',
+      404,
+    );
+    res.status(error.status_code).json(error.to_response());
+  });
 
   // Health check (no auth)
   app.get('/health', (_req, res) => {
@@ -59,4 +83,14 @@ export function create_app(
   app.use(error_handler);
 
   return app;
+}
+
+function method_not_allowed(): OpenAiError {
+  return new OpenAiError(
+    'The requested API endpoint does not support this HTTP method.',
+    'invalid_request_error',
+    null,
+    'method_not_allowed',
+    405,
+  );
 }

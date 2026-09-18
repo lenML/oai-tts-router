@@ -304,7 +304,7 @@ describe('GrokTtsProvider', () => {
           input: 'Hello',
           extra: { cookie: 'req-cookie=val' },
         }),
-      ).rejects.toThrow('grok-console-tts returned 429');
+      ).rejects.toThrow('HTTP 429');
       expect(mock_request).toHaveBeenCalledTimes(1);
     });
 
@@ -387,7 +387,7 @@ describe('GrokTtsProvider', () => {
       mock_request
         .mockResolvedValueOnce({
           status: 503,
-          headers: { 'content-type': 'text/html' },
+          headers: { 'content-type': 'application/json' },
           rawBody: Buffer.from('service unavailable'),
         })
         .mockResolvedValueOnce({
@@ -410,6 +410,50 @@ describe('GrokTtsProvider', () => {
       expect(mock_request).toHaveBeenCalledTimes(2);
     });
 
+    it('should mint a DPoP token and retry with proof headers', async () => {
+      mock_request
+        .mockResolvedValueOnce({
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+          rawBody: Buffer.from('unauthorized:dpop-required'),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+          rawBody: Buffer.from(JSON.stringify({ access_token: 'access-token', expires_in: 300 })),
+        })
+        .mockResolvedValueOnce({
+          status: 200,
+          headers: { 'content-type': 'audio/mpeg' },
+          rawBody: Buffer.from('audio-data'),
+        });
+
+      const result = await provider.speak({
+        model: 'grok-console-tts',
+        input: 'Hello',
+        extra: {},
+      });
+
+      expect(result.data.toString()).toBe('audio-data');
+      expect(mock_request).toHaveBeenCalledTimes(3);
+      expect(mock_request.mock.calls[1][0].url).toContain('/v1/dpop/token');
+
+      const mint_body = JSON.parse(mock_request.mock.calls[1][0].data);
+      expect(mint_body.jwk).toMatchObject({ kty: 'EC', crv: 'P-256' });
+
+      const proof_headers = mock_request.mock.calls[2][0].headers;
+      expect(proof_headers.authorization).toBe('DPoP access-token');
+      const [encoded_header, encoded_payload] = proof_headers.dpop.split('.');
+      const dpop_header = JSON.parse(Buffer.from(encoded_header, 'base64url').toString('utf-8'));
+      const dpop_payload = JSON.parse(Buffer.from(encoded_payload, 'base64url').toString('utf-8'));
+      expect(dpop_header).toMatchObject({ typ: 'dpop+jwt', alg: 'ES256' });
+      expect(dpop_payload).toMatchObject({
+        htm: 'POST',
+        htu: 'https://console.x.ai/v1/tts',
+      });
+      expect(dpop_payload.ath).toBeTruthy();
+    });
+
     it('should throw after exhausting all retries on 429', async () => {
       vi.useFakeTimers();
       mock_request.mockResolvedValue({
@@ -426,7 +470,7 @@ describe('GrokTtsProvider', () => {
       promise.catch(() => {}); // suppress unhandled rejection
 
       await vi.advanceTimersByTimeAsync(16000);
-      await expect(promise).rejects.toThrow('after 3 retries');
+      await expect(promise).rejects.toMatchObject({ status_code: 429 });
     });
 
     it('should retry on network error and succeed', async () => {

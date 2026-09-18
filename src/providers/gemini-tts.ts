@@ -27,14 +27,14 @@
 
 import { z } from 'zod';
 import { createCuimpHttp } from 'cuimp';
-import { OpenAiError } from '../errors.js';
+import { OpenAiError, upstream_error_details } from '../errors.js';
 import { OPENAI_ERROR_TYPE, OPENAI_ERROR_CODE } from '../types/openai.js';
-import { tts_request_base } from '../types/schema.js';
+import { tts_request_extended } from '../types/schema.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../types/provider.js';
 
 // -- Schema --
 
-const gemini_tts_schema = tts_request_base.extend({
+const gemini_tts_schema = tts_request_extended.extend({
   voice: z.string().optional(),
   model: z.string().optional(),
   language: z.string().optional(),
@@ -59,7 +59,6 @@ const GEMINI_MODELS = [
   'gemini-2.5-flash-tts',
   'gemini-2.5-pro-tts',
   'gemini-2.5-flash-lite-preview-tts',
-  'chirp3-hd',
 ] as const;
 
 const DEFAULT_GEMINI_VOICES = [
@@ -95,24 +94,14 @@ const DEFAULT_GEMINI_VOICES = [
   'Zubenelgenubi',
 ] as const;
 
-const VALID_ENCODINGS = [
-  'LINEAR16',
-  'MP3',
-  'MP3_64_KBPS',
-  'OGG_OPUS',
-  'MULAW',
-  'ALAW',
-  'PCM',
-] as const;
+const VALID_ENCODINGS = ['LINEAR16', 'MP3', 'OGG_OPUS', 'MULAW', 'ALAW'] as const;
 
 const GEMINI_MIME: Record<string, string> = {
-  LINEAR16: 'audio/L16; rate=24000; channels=1',
+  LINEAR16: 'audio/wav',
   MP3: 'audio/mpeg',
-  MP3_64_KBPS: 'audio/mpeg',
   OGG_OPUS: 'audio/ogg; codecs=opus',
-  MULAW: 'audio/basic',
+  MULAW: 'audio/wav',
   ALAW: 'audio/wav',
-  PCM: 'audio/L16; rate=24000; channels=1',
 };
 
 const PROXY_HEADERS: Record<string, string> = {
@@ -148,6 +137,7 @@ export class GeminiTtsProvider implements TtsProvider {
   request_schema = gemini_tts_schema;
 
   private tokens: string[];
+  private proxy_url?: string;
 
   constructor(config?: Record<string, unknown>) {
     const raw = config?.tokens;
@@ -158,10 +148,15 @@ export class GeminiTtsProvider implements TtsProvider {
     } else {
       this.tokens = [];
     }
+
+    this.proxy_url =
+      typeof config?.['proxy'] === 'string' && config['proxy'].trim().length > 0
+        ? config['proxy']
+        : undefined;
   }
 
   get_models(): string[] {
-    return [...GEMINI_MODELS];
+    return ['gemini-tts', ...GEMINI_MODELS];
   }
 
   get_model_voices(_model: string): string[] {
@@ -210,7 +205,7 @@ export class GeminiTtsProvider implements TtsProvider {
       const token = attempt === 0 ? pool[0] : (pick_random(pool) ?? pool[0]);
 
       try {
-        const response = await do_tts_request(request_payload, token);
+        const response = await do_tts_request(request_payload, token, this.proxy_url);
         const status = response.status;
 
         if (status === 200) {
@@ -229,13 +224,13 @@ export class GeminiTtsProvider implements TtsProvider {
 
         if (status === 429 || status === 500 || status === 503) {
           if (attempt >= max_retries) {
-            throw provider_error(`returned ${status} after 3 retries`, 502);
+            throw upstream_error(status, response.rawBody);
           }
           await sleep(Math.pow(2, attempt + 1) * 1000 + Math.random() * 500);
           continue;
         }
 
-        throw provider_error(`returned HTTP ${status}: ${preview_body(response.rawBody)}`, 502);
+        throw upstream_error(status, response.rawBody);
       } catch (err) {
         if (err instanceof OpenAiError) {
           throw err;
@@ -271,7 +266,13 @@ function resolve_encoding(encoding: string | undefined): string {
   for (const valid of VALID_ENCODINGS) {
     if (valid === upper) return valid;
   }
-  return 'LINEAR16';
+  throw new OpenAiError(
+    `Unsupported encoding '${encoding}'. Supported: ${VALID_ENCODINGS.join(', ')}`,
+    OPENAI_ERROR_TYPE.INVALID_REQUEST,
+    'encoding',
+    null,
+    400,
+  );
 }
 
 // -- Request building --
@@ -333,7 +334,11 @@ function build_tts_payload(
 
 // -- HTTP --
 
-async function do_tts_request(body_str: string, token: string): Promise<CuimpResponse> {
+async function do_tts_request(
+  body_str: string,
+  token: string,
+  proxy_url?: string,
+): Promise<CuimpResponse> {
   const request_url = `${PROXY_BASE}?url=${encodeURIComponent(TTS_URL)}&token=${token}`;
 
   const client = createCuimpHttp({
@@ -346,6 +351,7 @@ async function do_tts_request(body_str: string, token: string): Promise<CuimpRes
     headers: { ...PROXY_HEADERS },
     data: body_str,
     timeout: 30000,
+    ...(proxy_url ? { proxy: proxy_url } : {}),
   });
 }
 
@@ -416,9 +422,24 @@ function provider_error(message: string, status_code: number): OpenAiError {
   );
 }
 
-function preview_body(body: Buffer | Uint8Array | undefined): string {
-  if (!body) return '';
-  return Buffer.from(body).toString('utf-8').slice(0, 300);
+function upstream_error(status: number, body: Buffer | Uint8Array): OpenAiError {
+  const type =
+    status === 401
+      ? OPENAI_ERROR_TYPE.AUTHENTICATION
+      : status === 429
+        ? OPENAI_ERROR_TYPE.RATE_LIMIT
+        : status >= 500
+          ? OPENAI_ERROR_TYPE.SERVER
+          : OPENAI_ERROR_TYPE.INVALID_REQUEST;
+  const details = upstream_error_details(body);
+  const detail = details.message ?? details.raw;
+  return new OpenAiError(
+    `gemini-tts returned HTTP ${status}${detail ? `: ${detail}` : ''}`,
+    type,
+    details.param,
+    details.code,
+    status,
+  );
 }
 
 // -- General helpers --

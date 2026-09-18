@@ -4,9 +4,10 @@
 
 ## 支持的参数
 
-| extra 参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| voice | string | - | 音色名，通过 `GET /v1/models` 获取 |
-| rate | string | - | 语速，如 `+10%`、`-20%` |
-| pitch | string | - | 音调，如 `+5Hz`、`-3Hz` |
-| volume | string | - | 音量，如 `+20%`、`-10%` |
+| extra 参数      | 类型   | 默认值 | 说明                               |
+| --------------- | ------ | ------ | ---------------------------------- |
+| voice           | string | -      | 音色名，通过 `GET /v1/models` 获取 |
+| response_format | string | mp3    | mp3 / opus；opus 返回 `audio/webm` |
+| rate            | string | -      | 语速，如 `+10%`、`-20%`            |
+| pitch           | string | -      | 音调，如 `+5Hz`、`-3Hz`            |
+| volume          | string | -      | 音量，如 `+20%`、`-10%`            |

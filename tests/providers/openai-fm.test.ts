@@ -225,6 +225,18 @@ describe('OpenaiFmProvider', () => {
       expect(callBody.data).toContain('prompt=Speak+like+a+pirate');
     });
 
+    it('should pass speed to the upstream form body', async () => {
+      mockSuccessResponse();
+
+      await provider.speak({
+        model: 'openai-fm-tts',
+        input: 'Hello',
+        extra: { voice: 'alloy', speed: 1.5 },
+      });
+
+      expect(mockRequest.mock.calls[0][0].data).toContain('speed=1.5');
+    });
+
     it('should include generation UUID in request body', async () => {
       mockSuccessResponse();
 
@@ -372,37 +384,33 @@ describe('OpenaiFmProvider', () => {
           await vi.advanceTimersToNextTimerAsync();
         }
 
-        await expect(speakPromise).rejects.toThrow(OpenAiError);
+        await expect(speakPromise).rejects.toMatchObject({
+          status_code: 429,
+        });
         expect(mockRequest).toHaveBeenCalledTimes(4);
       } finally {
         vi.useRealTimers();
       }
     });
 
-    it('should throw on non-retryable HTTP status (400)', async () => {
-      vi.useFakeTimers();
-      try {
-        mockRequest.mockResolvedValue({ status: 400, headers: {}, rawBody: Buffer.from('') });
+    it('should immediately preserve a non-retryable HTTP status', async () => {
+      mockRequest.mockResolvedValue({
+        status: 400,
+        headers: { 'content-type': 'text/plain' },
+        rawBody: Buffer.from('bad request'),
+      });
 
-        const speakPromise = provider.speak({
+      await expect(
+        provider.speak({
           model: 'openai-fm-tts',
           input: 'Hello',
           extra: { voice: 'alloy' },
-        });
-        speakPromise.catch(() => {}); // suppress unhandled rejection
-
-        for (let i = 0; i < 3; i++) {
-          await vi.advanceTimersToNextTimerAsync();
-        }
-
-        await expect(speakPromise).rejects.toThrow(OpenAiError);
-        expect(mockRequest).toHaveBeenCalledTimes(4);
-      } finally {
-        vi.useRealTimers();
-      }
+        }),
+      ).rejects.toMatchObject({ status_code: 400 });
+      expect(mockRequest).toHaveBeenCalledTimes(1);
     });
 
-    it('should clear proxy env vars during request and restore them in finally', async () => {
+    it('should keep proxy env vars unchanged and bypass them per request', async () => {
       vi.useFakeTimers();
       try {
         mockSuccessResponse();
@@ -417,6 +425,7 @@ describe('OpenaiFmProvider', () => {
         });
 
         expect(result.content_type).toBe('audio/wav');
+        expect(mockRequest.mock.calls[0][0].proxy).toBe('');
         expect(process.env['HTTP_PROXY']).toBe('http://proxy.example.com:8080');
         expect(process.env['HTTPS_PROXY']).toBe('http://proxy.example.com:8080');
       } finally {
@@ -424,7 +433,7 @@ describe('OpenaiFmProvider', () => {
       }
     });
 
-    it('should restore proxy env vars even on failure', async () => {
+    it('should keep proxy env vars unchanged on failure', async () => {
       vi.useFakeTimers();
       try {
         mockRequest.mockRejectedValue(new Error('Network error'));

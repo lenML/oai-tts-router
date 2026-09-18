@@ -9,7 +9,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { register_audio_routes } from '../../src/routes/audio.js';
 import { ProviderRegistry } from '../../src/providers/registry.js';
-import { error_handler } from '../../src/errors.js';
+import { error_handler, OpenAiError } from '../../src/errors.js';
 import { openai_tts_schema } from '../../src/types/openai.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../../src/types/provider.js';
 import type { z } from 'zod';
@@ -163,6 +163,19 @@ describe('POST /v1/audio/speech', () => {
       expect(res2.headers['x-cache']).toBe('HIT');
     });
 
+    it('should include text_split in the cache key', async () => {
+      const plain_body = { model: 'tts-1', input: 'same text', voice: 'alloy' };
+      const split_body = { ...plain_body, text_split: true };
+
+      const first = await request(app).post('/v1/audio/speech').send(plain_body);
+      const split = await request(app).post('/v1/audio/speech').send(split_body);
+      const split_again = await request(app).post('/v1/audio/speech').send(split_body);
+
+      expect(first.headers['x-cache']).toBe('MISS');
+      expect(split.headers['x-cache']).toBe('MISS');
+      expect(split_again.headers['x-cache']).toBe('HIT');
+    });
+
     it('should return X-Cache: MISS for different requests', async () => {
       await request(app)
         .post('/v1/audio/speech')
@@ -313,6 +326,38 @@ describe('POST /v1/audio/speech', () => {
   });
 
   describe('provider routing', () => {
+    it('should preserve provider OpenAiError status and metadata', async () => {
+      class BadRequestProvider implements TtsProvider {
+        readonly name = 'bad-request';
+        get_models() {
+          return ['bad-request-model'];
+        }
+        supports_model(model: string) {
+          return model === 'bad-request-model';
+        }
+        async speak(): Promise<SpeechResult> {
+          throw new OpenAiError(
+            'Upstream rejected the request.',
+            'invalid_request_error',
+            'voice',
+            'voice_not_supported',
+            400,
+          );
+        }
+      }
+
+      registry.register(new BadRequestProvider());
+      const res = await request(app)
+        .post('/v1/audio/speech')
+        .send({ model: 'bad-request-model', input: 'hello', voice: 'alloy' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatchObject({
+        param: 'voice',
+        code: 'voice_not_supported',
+      });
+    });
+
     it('should return 400 for unsupported model', async () => {
       const res = await request(app)
         .post('/v1/audio/speech')

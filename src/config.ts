@@ -106,6 +106,36 @@ function merge_env(file_cfg: Partial<AppConfig>): AppConfig {
       .map(s => s.trim())
       .filter(s => s.length > 0);
   }
+  if (process.env['XAI_CONSOLE_COOKIE']) {
+    cfg.providers['grok-console-tts'] = {
+      ...cfg.providers['grok-console-tts'],
+      cookies: [process.env['XAI_CONSOLE_COOKIE']],
+    };
+  }
+  if (process.env['GEMINI_TOKEN']) {
+    cfg.providers['gemini-tts'] = {
+      ...cfg.providers['gemini-tts'],
+      tokens: [process.env['GEMINI_TOKEN']],
+    };
+  }
+  if (
+    process.env['FLARESOLVERR_URL'] ||
+    process.env['FLARESOLVERR_PROXY'] ||
+    process.env['GROK_BROWSER_VERSION']
+  ) {
+    cfg.providers['grok-console-tts'] = {
+      ...cfg.providers['grok-console-tts'],
+      ...(process.env['FLARESOLVERR_URL']
+        ? { flaresolverr_url: process.env['FLARESOLVERR_URL'] }
+        : {}),
+      ...(process.env['FLARESOLVERR_PROXY']
+        ? { flaresolverr_proxy: process.env['FLARESOLVERR_PROXY'] }
+        : {}),
+      ...(process.env['GROK_BROWSER_VERSION']
+        ? { browser_version: process.env['GROK_BROWSER_VERSION'] }
+        : {}),
+    };
+  }
   if (process.env['TTS_CACHE_SIZE']) cfg.cache.tts_size = process.env['TTS_CACHE_SIZE'];
   if (process.env['HTTP_PROXY']) cfg.proxy.http = process.env['HTTP_PROXY'];
   if (process.env['HTTPS_PROXY']) cfg.proxy.https = process.env['HTTPS_PROXY'];
@@ -117,10 +147,19 @@ function merge_env(file_cfg: Partial<AppConfig>): AppConfig {
 
 let _config: AppConfig | null = null;
 
-/** Load (or return cached) application configuration. */
-export function load_config(): AppConfig {
+/** Load (or return cached) application configuration. */ export function load_config(): AppConfig {
   if (!_config) {
     _config = merge_env(load_file());
   }
   return _config;
+}
+
+/** Apply the global outbound proxy unless the provider overrides it. */
+export function with_outbound_proxy(
+  provider_config: Record<string, unknown> | undefined,
+  proxy: AppConfig['proxy'],
+): Record<string, unknown> | undefined {
+  const outbound_proxy = proxy.https ?? proxy.http;
+  if (!outbound_proxy || provider_config?.['proxy'] !== undefined) return provider_config;
+  return { ...provider_config, proxy: outbound_proxy };
 }

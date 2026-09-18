@@ -91,6 +91,11 @@ describe('split_text', () => {
     }
   });
 
+  it('should reject non-positive max_length', () => {
+    expect(() => split_text('abc', 0)).toThrow(RangeError);
+    expect(() => split_text('abc', -1)).toThrow(RangeError);
+  });
+
   it('should handle empty string', () => {
     const result = split_text('', 10);
     expect(result).toEqual(['']);

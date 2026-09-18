@@ -20,38 +20,37 @@
 
 ## 可用模型
 
-| extra model 值                    | 说明                  |
-| --------------------------------- | --------------------- |
-| gemini-2.5-flash-tts (默认)       | 低延迟，单/多说话者   |
-| gemini-2.5-pro-tts                | 高度控制，播客/有声书 |
-| gemini-2.5-flash-lite-preview-tts | 轻量预览版            |
+| extra model 值                    | 说明                   |
+| --------------------------------- | ---------------------- |
+| gemini-3.1-flash-tts-preview      | 默认 Gemini 3.1 预览版 |
+| gemini-2.5-flash-tts              | 低延迟，单/多说话者    |
+| gemini-2.5-pro-tts                | 高度控制，播客/有声书  |
+| gemini-2.5-flash-lite-preview-tts | 轻量预览版             |
 
 ## 支持的编码格式
 
-| encoding 值     | 说明           |
-| --------------- | -------------- |
-| LINEAR16 (默认) | PCM s16le      |
-| MP3             | MP3 32kbps     |
-| MP3_64_KBPS     | MP3 64kbps     |
-| OGG_OPUS        | Opus Ogg 容器  |
-| MULAW           | μ-law 8bit     |
-| ALAW            | A-law 8bit     |
-| PCM             | PCM 16bit 裸流 |
+| encoding 值     | Content-Type | 说明                  |
+| --------------- | ------------ | --------------------- |
+| LINEAR16 (默认) | `audio/wav`  | 上游实际返回 WAV 容器 |
+| MP3             | `audio/mpeg` | MP3                   |
+| OGG_OPUS        | `audio/ogg`  | Opus Ogg 容器         |
+| MULAW           | `audio/wav`  | 上游实际返回 WAV 容器 |
+| ALAW            | `audio/wav`  | 上游实际返回 WAV 容器 |
 
 ## 支持的参数
 
-| extra 参数  | 类型   | 默认值               | 说明                           |
-| ----------- | ------ | -------------------- | ------------------------------ |
-| voice       | string | Kore                 | 音色名（支持任意值）           |
-| model       | string | gemini-2.5-flash-tts | 模型名                         |
-| language    | string | en-us                | BCP-47 语言代码                |
-| gender      | string | -                    | MALE / FEMALE / NEUTRAL        |
-| encoding    | string | LINEAR16             | 音频编码格式                   |
-| sample_rate | number | 24000                | 采样率 (Hz)                    |
-| speed       | number | -                    | 语速 [0.25 - 2.0]              |
-| pitch       | number | -                    | 音调 [-20.0 - 20.0] 半音       |
-| gain        | number | -                    | 音量增益 [-96.0 - 16.0] dB     |
-| prompt      | string | -                    | 语音风格提示（max 4000 bytes） |
+| extra 参数  | 类型   | 默认值                       | 说明                           |
+| ----------- | ------ | ---------------------------- | ------------------------------ |
+| voice       | string | Kore                         | 音色名（支持任意值）           |
+| model       | string | gemini-3.1-flash-tts-preview | 模型名                         |
+| language    | string | en-us                        | BCP-47 语言代码                |
+| gender      | string | -                            | MALE / FEMALE / NEUTRAL        |
+| encoding    | string | LINEAR16                     | 音频编码格式                   |
+| sample_rate | number | 24000                        | 采样率 (Hz)                    |
+| speed       | number | -                            | 语速 [0.25 - 2.0]              |
+| pitch       | number | -                            | 音调 [-20.0 - 20.0] 半音       |
+| gain        | number | -                            | 音量增益 [-96.0 - 16.0] dB     |
+| prompt      | string | -                            | 语音风格提示（max 4000 bytes） |
 
 ## 默认音色
 

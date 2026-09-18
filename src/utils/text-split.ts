@@ -63,6 +63,10 @@ function is_word_boundary(ch: string): boolean {
  * Preserves chunk ordering for concatenation.
  */
 export function split_text(text: string, max_length: number): string[] {
+  if (!Number.isInteger(max_length) || max_length <= 0) {
+    throw new RangeError('max_length must be a positive integer');
+  }
+
   if (text.length <= max_length) {
     return [text];
   }
@@ -79,6 +83,9 @@ export function split_text(text: string, max_length: number): string[] {
     }
 
     const end = find_split_boundary(text, start, max_length);
+    if (end <= start) {
+      throw new Error('text split made no progress');
+    }
     chunks.push(text.slice(start, end));
     start = end;
   }

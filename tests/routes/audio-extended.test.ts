@@ -9,7 +9,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { register_audio_routes } from '../../src/routes/audio.js';
 import { ProviderRegistry } from '../../src/providers/registry.js';
-import { error_handler } from '../../src/errors.js';
+import { error_handler, OpenAiError } from '../../src/errors.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../../src/types/provider.js';
 
 /** Create a minimal valid WAV buffer with PCM audio data. */
@@ -198,6 +198,37 @@ describe('POST /v1/audio/speech - text_split', () => {
     expect(res.status).toBe(200);
   });
 
+  it('should reject zero text_split_max_length before calling the provider', async () => {
+    const res = await request(app)
+      .post('/v1/audio/speech')
+      .send({
+        model: 'tts-1',
+        input: 'A'.repeat(500),
+        voice: 'alloy',
+        text_split: true,
+        text_split_max_length: 0,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.param).toBe('text_split_max_length');
+    expect(echoProvider.call_count).toBe(0);
+  });
+
+  it('should reject text_split_max_length above the documented limit', async () => {
+    const res = await request(app)
+      .post('/v1/audio/speech')
+      .send({
+        model: 'tts-1',
+        input: 'A'.repeat(500),
+        voice: 'alloy',
+        text_split: true,
+        text_split_max_length: 10001,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.param).toBe('text_split_max_length');
+  });
+
   it('should not split text when text_split is false or omitted', async () => {
     const long_text = 'Hello world. '.repeat(30);
 
@@ -212,7 +243,7 @@ describe('POST /v1/audio/speech - text_split', () => {
   });
 
   it('should allow input longer than 4096 with text_split', async () => {
-    const long_text = 'Hello world. '.repeat(300); // ~3600 chars
+    const long_text = 'Hello world. '.repeat(400); // ~5200 chars
 
     const res = await request(app).post('/v1/audio/speech').send({
       model: 'tts-1',
@@ -287,6 +318,52 @@ describe('POST /v1/audio/speech - fallback_models', () => {
     expect(res.status).toBe(200);
     // Echo should have been called exactly once
     expect(echoProvider.call_count).toBe(1);
+  });
+
+  it('should reject non-array fallback_models', async () => {
+    registry.register(new FailingProvider('fail1', 'Primary failed'));
+    registry.register(new EchoProvider('echo'));
+
+    const res = await request(app).post('/v1/audio/speech').send({
+      model: 'failing-model',
+      input: 'Hello',
+      voice: 'alloy',
+      fallback_models: 'tts-1',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.param).toBe('fallback_models');
+  });
+
+  it('should not fall back after a non-retryable 4xx error', async () => {
+    class BadRequestProvider implements TtsProvider {
+      readonly name = 'bad-request';
+      get_models() {
+        return ['bad-request-model'];
+      }
+      supports_model(model: string) {
+        return model === 'bad-request-model';
+      }
+      async speak(): Promise<SpeechResult> {
+        throw new OpenAiError('Bad request.', 'invalid_request_error', 'voice', null, 400);
+      }
+    }
+
+    const fallback = new EchoProvider('echo');
+    registry.register(new BadRequestProvider());
+    registry.register(fallback);
+
+    const res = await request(app)
+      .post('/v1/audio/speech')
+      .send({
+        model: 'bad-request-model',
+        input: 'Hello',
+        voice: 'alloy',
+        fallback_models: ['tts-1'],
+      });
+
+    expect(res.status).toBe(400);
+    expect(fallback.call_count).toBe(0);
   });
 
   it('should skip fallback models with no registered provider', async () => {

@@ -21,8 +21,8 @@ export const tts_request_base = z.object({
   no_cache: z.boolean().optional(),
 });
 
-/** Extended TTS request with text_split and fallback support. */
-export const tts_request_extended = tts_request_base.extend({
+/** Optional router features shared by every provider. */
+export const tts_request_features = z.object({
   /** Split long text into chunks and concatenate audio */
   text_split: z.boolean().optional(),
   /** Max characters per chunk when text_split is enabled (default 1000) */
@@ -31,7 +31,15 @@ export const tts_request_extended = tts_request_base.extend({
   fallback_models: z.array(z.string().min(1)).optional(),
 });
 
+/** Extended TTS request with text_split and fallback support. */
+export const tts_request_extended = tts_request_base.extend({
+  ...tts_request_features.shape,
+  /** Relax the base limit when text splitting is available. */
+  input: z.string().min(1).max(TEXT_SPLIT_MAX_INPUT),
+});
+
 export type TtsRequestBase = z.infer<typeof tts_request_base>;
+export type TtsRequestFeatures = z.infer<typeof tts_request_features>;
 export type TtsRequestExtended = z.infer<typeof tts_request_extended>;
 
 /** Common audio output formats */

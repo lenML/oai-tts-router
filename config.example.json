@@ -17,7 +17,9 @@
       "base_url": "https://www.openai.fm"
     },
     "grok-console-tts": {
-      "cookies": ["sso=sso-token-value;"]
+      "cookies": ["sso=sso-token-value;"],
+      "flaresolverr_url": "http://127.0.0.1:8191",
+      "flaresolverr_proxy": "http://127.0.0.1:7890"
     },
     "gemini-tts": {
       "tokens": ["your-recaptcha-token-here"]

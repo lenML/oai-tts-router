@@ -18,16 +18,17 @@
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import { createCuimpHttp } from 'cuimp';
-import { OpenAiError } from '../errors.js';
+import { OpenAiError, upstream_error_details } from '../errors.js';
 import { OPENAI_ERROR_TYPE, OPENAI_ERROR_CODE } from '../types/openai.js';
-import { tts_request_base } from '../types/schema.js';
+import { tts_request_extended } from '../types/schema.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../types/provider.js';
 
 // ── Schema ───────────────────────────────────────────────────
 
-const openai_fm_schema = tts_request_base.extend({
+const openai_fm_schema = tts_request_extended.extend({
   voice: z.string().min(1, { message: 'The `voice` parameter is required.' }),
   response_format: z.enum(['wav', 'mp3']).optional(),
+  speed: z.number().min(0.25).max(4.0).optional(),
   instructions: z.string().optional(),
 });
 
@@ -97,149 +98,149 @@ export class OpenaiFmProvider implements TtsProvider {
   }
 
   async speak(params: SpeechParams): Promise<SpeechResult> {
-    // Bypass proxy for openai.fm requests — cuimp uses system curl which inherits
-    // HTTP_PROXY/HTTPS_PROXY from dotenv, and proxied requests trigger 429 rate limiting
-    // due to proxy IP reputation or JA3 interference.
-    const prev_http = process.env['HTTP_PROXY'];
-    const prev_https = process.env['HTTPS_PROXY'];
-    delete process.env['HTTP_PROXY'];
-    delete process.env['HTTPS_PROXY'];
+    // Bypass inherited proxy environment variables for this request only.
+    const client = createCuimpHttp({
+      descriptor: { browser: 'chrome', version: '124' },
+    });
 
-    try {
-      // Create a fresh cuimp client per speak() call, matching the demo pattern.
-      // Reusing clients can cause header duplication with cuimp's .bat fallback.
-      const client = createCuimpHttp({
-        descriptor: { browser: 'chrome', version: '124' },
-      });
+    const text = params.input;
+    const voice = params.extra['voice'] as string | undefined;
+    if (!voice) {
+      throw new OpenAiError(
+        'The `voice` parameter is required.',
+        OPENAI_ERROR_TYPE.INVALID_REQUEST,
+        'voice',
+        null,
+        400,
+      );
+    }
 
-      const text = params.input;
-      const voice = params.extra['voice'] as string | undefined;
-      if (!voice) {
-        throw new OpenAiError(
-          'The `voice` parameter is required.',
-          OPENAI_ERROR_TYPE.INVALID_REQUEST,
-          'voice',
-          null,
-          400,
-        );
+    if (!OPENAI_FM_VOICES.includes(voice as (typeof OPENAI_FM_VOICES)[number])) {
+      throw new OpenAiError(
+        `Unsupported voice '${voice}'. Supported: ${OPENAI_FM_VOICES.join(', ')}`,
+        OPENAI_ERROR_TYPE.INVALID_REQUEST,
+        'voice',
+        OPENAI_ERROR_CODE.VOICE_NOT_SUPPORTED,
+        400,
+      );
+    }
+
+    const response_format = (params.extra['response_format'] as string | undefined) ?? 'wav';
+    const fm_format = response_format === 'mp3' ? 'mp3' : 'wav';
+    const instructions = params.extra['instructions'] as string | undefined;
+    const speed = params.extra['speed'] as number | undefined;
+
+    const form_body = new URLSearchParams({
+      input: text,
+      voice,
+      generation: crypto.randomUUID(),
+      response_format: fm_format,
+    });
+    if (instructions) form_body.append('prompt', instructions);
+    if (speed !== undefined) form_body.append('speed', String(speed));
+
+    const url = `${this.base_url.replace(/\/+$/, '')}/api/generate`;
+    const headers: Record<string, string> = { ...BROWSER_HEADERS };
+    headers['Content-Type'] = 'application/x-www-form-urlencoded';
+
+    const max_retries = 3;
+    for (let attempt = 0; attempt <= max_retries; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
+        await sleep(delay);
       }
 
-      if (!OPENAI_FM_VOICES.includes(voice as (typeof OPENAI_FM_VOICES)[number])) {
-        throw new OpenAiError(
-          `Unsupported voice '${voice}'. Supported: ${OPENAI_FM_VOICES.join(', ')}`,
-          OPENAI_ERROR_TYPE.INVALID_REQUEST,
-          'voice',
-          OPENAI_ERROR_CODE.VOICE_NOT_SUPPORTED,
-          400,
-        );
-      }
+      try {
+        const response = await client.request({
+          url,
+          data: form_body.toString(),
+          method: 'POST',
+          headers,
+          proxy: '',
+        });
+        const status = response.status;
 
-      // Resolve format: openai.fm only supports wav and mp3
-      const response_format = (params.extra['response_format'] as string | undefined) ?? 'wav';
-      const fm_format = response_format === 'mp3' ? 'mp3' : 'wav';
-
-      const instructions = params.extra['instructions'] as string | undefined;
-
-      // Build form body
-      const form_body = new URLSearchParams({
-        input: text,
-        voice: voice,
-        generation: crypto.randomUUID(),
-        response_format: fm_format,
-      });
-
-      if (instructions) {
-        form_body.append('prompt', instructions);
-      }
-
-      const url = `${this.base_url.replace(/\/+$/, '')}/api/generate`;
-
-      const headers: Record<string, string> = { ...BROWSER_HEADERS };
-      headers['Content-Type'] = 'application/x-www-form-urlencoded';
-
-      const max_retries = 3;
-
-      for (let attempt = 0; attempt <= max_retries; attempt++) {
-        if (attempt > 0) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1) + Math.random() * 500, 10000);
-          await sleep(delay);
+        if (status === 200) {
+          const content_type = response.headers['content-type'] ?? '';
+          const detected_format = detect_fm_format(response.rawBody, content_type, fm_format);
+          return {
+            content_type: FM_FORMAT_TO_MIME[detected_format],
+            data: Buffer.from(response.rawBody),
+          };
         }
 
-        try {
-          const response = await client.request({
-            url,
-            data: form_body.toString(),
-            method: 'POST',
-            headers,
-          });
-
-          const status = response.status;
-
-          if (status === 200) {
-            // Detect actual format from Content-Type
-            const content_type = (response.headers['content-type'] as string | undefined) ?? '';
-            const detected_format = content_type.includes('mpeg') ? 'mp3' : fm_format;
-
-            return {
-              content_type: FM_FORMAT_TO_MIME[detected_format] ?? FM_FORMAT_TO_MIME[fm_format],
-              data: Buffer.from(response.rawBody),
-            };
+        if (status === 429 || status >= 500) {
+          if (attempt === max_retries) {
+            throw upstream_error(status, response.rawBody);
           }
+          continue;
+        }
 
-          // Retry on rate-limit or server errors
-          if (status === 429 || status >= 500) {
-            if (attempt === max_retries) {
-              throw new OpenAiError(
-                `openai.fm returned ${status} after ${max_retries} retries`,
-                OPENAI_ERROR_TYPE.PROVIDER,
-                null,
-                OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
-                502,
-              );
-            }
-            continue;
-          }
-
+        throw upstream_error(status, response.rawBody);
+      } catch (err) {
+        if (err instanceof OpenAiError) throw err;
+        const message = err instanceof Error ? err.message : String(err);
+        if (attempt === max_retries) {
           throw new OpenAiError(
-            `openai.fm returned HTTP ${status}`,
+            `openai.fm request failed: ${message}`,
             OPENAI_ERROR_TYPE.PROVIDER,
             null,
             OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
             502,
           );
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-
-          if (attempt === max_retries) {
-            throw new OpenAiError(
-              `openai.fm request failed: ${message}`,
-              OPENAI_ERROR_TYPE.PROVIDER,
-              null,
-              OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
-              502,
-            );
-          }
-          // Otherwise retry after delay
-          continue;
         }
       }
-
-      throw new OpenAiError(
-        'Unexpected end of retry loop in openai-fm provider',
-        OPENAI_ERROR_TYPE.PROVIDER,
-        null,
-        OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
-        500,
-      );
-    } finally {
-      if (prev_http !== undefined) process.env['HTTP_PROXY'] = prev_http;
-      else delete process.env['HTTP_PROXY'];
-      if (prev_https !== undefined) process.env['HTTPS_PROXY'] = prev_https;
-      else delete process.env['HTTPS_PROXY'];
     }
+
+    throw new OpenAiError(
+      'Unexpected end of retry loop in openai-fm provider',
+      OPENAI_ERROR_TYPE.PROVIDER,
+      null,
+      OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
+      500,
+    );
   }
 }
-
 // ── Helpers ───────────────────────────────────────────────────
+
+function detect_fm_format(
+  body: Buffer | Uint8Array,
+  content_type: string,
+  fallback: string,
+): string {
+  const data = Buffer.from(body);
+  const media_type = content_type.toLowerCase();
+  if (
+    media_type.includes('mpeg') ||
+    data.subarray(0, 3).toString('ascii') === 'ID3' ||
+    (data.length >= 2 && data[0] === 0xff && (data[1] & 0xe0) === 0xe0)
+  ) {
+    return 'mp3';
+  }
+  if (media_type.includes('wav') || data.subarray(0, 4).toString('ascii') === 'RIFF') {
+    return 'wav';
+  }
+  return fallback;
+}
+
+function upstream_error(status: number, body: Buffer | Uint8Array): OpenAiError {
+  const type =
+    status === 401
+      ? OPENAI_ERROR_TYPE.AUTHENTICATION
+      : status === 429
+        ? OPENAI_ERROR_TYPE.RATE_LIMIT
+        : status >= 500
+          ? OPENAI_ERROR_TYPE.SERVER
+          : OPENAI_ERROR_TYPE.INVALID_REQUEST;
+  const details = upstream_error_details(body);
+  const detail = details.message ?? details.raw;
+  return new OpenAiError(
+    `openai.fm returned HTTP ${status}${detail ? `: ${detail}` : ''}`,
+    type,
+    details.param,
+    details.code,
+    status,
+  );
+}
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));

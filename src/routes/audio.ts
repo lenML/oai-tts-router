@@ -17,9 +17,9 @@
 
 import { Router } from 'express';
 import type { Response } from 'express';
-import { z } from 'zod';
+
 import { load_config } from '../config.js';
-import { tts_request_base, TEXT_SPLIT_MAX_INPUT } from '../types/schema.js';
+import { tts_request_base, tts_request_extended, tts_request_features } from '../types/schema.js';
 import { openai_error_from_zod, OpenAiError } from '../errors.js';
 import { OPENAI_ERROR_TYPE, OPENAI_ERROR_CODE } from '../types/openai.js';
 import type { ProviderRegistry } from '../providers/registry.js';
@@ -33,11 +33,6 @@ const route_path = '/v1/audio/speech';
 
 /** Default max length per chunk when text_split is enabled */
 const DEFAULT_TEXT_SPLIT_MAX_LENGTH = 1000;
-
-/** Extended input validation schema for text_split requests (relaxed max) */
-const tts_request_text_split = tts_request_base.extend({
-  input: z.string().min(1).max(TEXT_SPLIT_MAX_INPUT),
-});
 
 /** Register audio-related routes */
 export function register_audio_routes(router: Router, registry: ProviderRegistry): void {
@@ -63,9 +58,14 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
       (body['text_split_max_length'] as number | undefined) ?? DEFAULT_TEXT_SPLIT_MAX_LENGTH;
     const fallback_models = body['fallback_models'] as string[] | undefined;
 
-    // Step 1: Validate base fields (model, input)
-    // Use relaxed input limit if text_split is enabled
-    const base_schema = text_split_enabled ? tts_request_text_split : tts_request_base;
+    // Step 1: Validate router features and base fields (model, input).
+    const feature_result = tts_request_features.safeParse(body);
+    if (!feature_result.success) {
+      throw openai_error_from_zod(feature_result.error);
+    }
+
+    // Use the relaxed input limit only when text splitting is enabled.
+    const base_schema = text_split_enabled ? tts_request_extended : tts_request_base;
     const base_result = base_schema.safeParse(body);
     if (!base_result.success) {
       throw openai_error_from_zod(base_result.error);
@@ -85,6 +85,22 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
       validated_body = schema_result.data;
     } else {
       validated_body = body;
+    }
+
+    const requested_voice = validated_body['voice'];
+    const supported_voices = provider.get_model_voices?.(primary_model) ?? [];
+    if (
+      typeof requested_voice === 'string' &&
+      supported_voices.length > 0 &&
+      !supported_voices.includes(requested_voice)
+    ) {
+      throw new OpenAiError(
+        `Unsupported voice '${requested_voice}' for model '${primary_model}'.`,
+        OPENAI_ERROR_TYPE.INVALID_REQUEST,
+        'voice',
+        OPENAI_ERROR_CODE.VOICE_NOT_SUPPORTED,
+        400,
+      );
     }
 
     // Step 3.5: Extract feature flags before cache/provider processing
@@ -145,7 +161,10 @@ export function register_audio_routes(router: Router, registry: ProviderRegistry
         },
       );
     } catch (err) {
-      // Re-throw provider errors as OpenAiError for proper status code
+      if (err instanceof OpenAiError) {
+        throw err;
+      }
+      // Unknown provider failures are surfaced as upstream outages.
       const message = err instanceof Error ? err.message : String(err);
       throw new OpenAiError(
         message,
@@ -255,6 +274,7 @@ async function attempt_speak_with_fallback(
   try {
     return await do_speak(primary, params, opts);
   } catch (err) {
+    if (!is_fallback_eligible(err)) throw err;
     last_error = err instanceof Error ? err : new Error(String(err));
     logger.warn('primary provider failed, attempting fallback', {
       provider: opts.provider_name,
@@ -275,10 +295,15 @@ async function attempt_speak_with_fallback(
       const fb_params: SpeechParams = {
         ...params,
         model: fb.model,
+        extra: {
+          ...(load_config().default_params?.[fb.model] ?? {}),
+          ...params.extra,
+        },
       };
 
       return await do_speak(fb.provider, fb_params, opts);
     } catch (err) {
+      if (!is_fallback_eligible(err)) throw err;
       last_error = err instanceof Error ? err : new Error(String(err));
       logger.warn('fallback provider failed', {
         provider: fb.provider.name,
@@ -297,6 +322,16 @@ async function attempt_speak_with_fallback(
       OPENAI_ERROR_CODE.PROVIDER_UNAVAILABLE,
       502,
     )
+  );
+}
+
+function is_fallback_eligible(err: unknown): boolean {
+  if (!(err instanceof OpenAiError)) return true;
+  return (
+    err.status_code === 408 ||
+    err.status_code === 425 ||
+    err.status_code === 429 ||
+    err.status_code >= 500
   );
 }
 

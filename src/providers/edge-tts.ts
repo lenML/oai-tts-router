@@ -15,13 +15,16 @@
 
 import { z } from 'zod';
 import { EdgeTTS, Constants } from '@andresaya/edge-tts';
-import { tts_request_base } from '../types/schema.js';
+import { OpenAiError } from '../errors.js';
+import { tts_request_extended } from '../types/schema.js';
+import { OPENAI_ERROR_CODE, OPENAI_ERROR_TYPE } from '../types/openai.js';
 import type { TtsProvider, SpeechParams, SpeechResult } from '../types/provider.js';
 
 // ── Schema ───────────────────────────────────────────────────
 
-const edge_tts_schema = tts_request_base.extend({
+const edge_tts_schema = tts_request_extended.extend({
   voice: z.string().min(1, { message: 'The `voice` parameter is required for Edge TTS.' }),
+  response_format: z.enum(['mp3', 'opus']).optional(),
   rate: z.string().optional(),
   volume: z.string().optional(),
   pitch: z.string().optional(),
@@ -34,10 +37,6 @@ const edge_tts_schema = tts_request_base.extend({
 const FORMAT_TO_EDGE: Record<string, string> = {
   mp3: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
   opus: Constants.OUTPUT_FORMAT.WEBM_24KHZ_16BIT_MONO_OPUS,
-  aac: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-  flac: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-  wav: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
-  pcm: Constants.OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3,
 };
 
 /** Content-Type when format doesn't match the actual audio (Edge always returns mp3/opus) */
@@ -81,7 +80,13 @@ export class EdgeTtsProvider implements TtsProvider {
     const text = params.input;
     const voice = params.extra['voice'] as string | undefined;
     if (!voice) {
-      throw new Error('The `voice` parameter is required for Edge TTS.');
+      throw new OpenAiError(
+        'The `voice` parameter is required for Edge TTS.',
+        OPENAI_ERROR_TYPE.INVALID_REQUEST,
+        'voice',
+        OPENAI_ERROR_CODE.VOICE_NOT_SUPPORTED,
+        400,
+      );
     }
 
     // Resolve output format
@@ -113,7 +118,7 @@ export class EdgeTtsProvider implements TtsProvider {
 
     // Determine content-type
     const is_opus = edge_output_format === Constants.OUTPUT_FORMAT.WEBM_24KHZ_16BIT_MONO_OPUS;
-    const content_type = is_opus ? 'audio/ogg' : EDGE_CONTENT_TYPE;
+    const content_type = is_opus ? 'audio/webm' : EDGE_CONTENT_TYPE;
 
     return { content_type, data: buffer };
   }

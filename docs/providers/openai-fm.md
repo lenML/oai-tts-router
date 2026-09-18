@@ -10,8 +10,8 @@
 
 ## 支持的参数
 
-| extra 参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| voice | string | - | alloy / ash / ballad / coral / echo / fable / nova / onyx / sage / shimmer / verse |
-| response_format | string | mp3 | mp3 / opus / aac / flac / wav / pcm |
-| speed | number | 1.0 | 语速 [0.25 - 4.0] |
+| extra 参数      | 类型   | 默认值 | 说明                                                                               |
+| --------------- | ------ | ------ | ---------------------------------------------------------------------------------- |
+| voice           | string | -      | alloy / ash / ballad / coral / echo / fable / nova / onyx / sage / shimmer / verse |
+| response_format | string | wav    | wav / mp3；上游实际格式以响应 Content-Type 或文件头为准                            |
+| speed           | number | 1.0    | 语速 [0.25 - 4.0]                                                                  |
