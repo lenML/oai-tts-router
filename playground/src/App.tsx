@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ComposerCard } from '@/components/playground/composer-card'
 import { HistoryPanel } from '@/components/playground/history-panel'
 import { PlaygroundHeader } from '@/components/playground/playground-header'
@@ -11,10 +12,17 @@ import { ApiError } from '@/lib/api'
 import { usePlaygroundStore } from '@/store/playground-store'
 
 export default function App() {
+  const { t, i18n } = useTranslation()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const fetchModels = usePlaygroundStore(state => state.fetchModels)
+  const loadHistory = usePlaygroundStore(state => state.loadHistory)
   const didFetchModels = useRef(false)
+  const didLoadHistory = useRef(false)
+
+  useEffect(() => {
+    document.title = `${t('app.title')} | ${t('app.badge')}`
+  }, [i18n.resolvedLanguage, t])
 
   useEffect(() => {
     if (didFetchModels.current) return
@@ -38,6 +46,12 @@ export default function App() {
     }
   }, [fetchModels])
 
+  useEffect(() => {
+    if (didLoadHistory.current) return
+    didLoadHistory.current = true
+    void loadHistory()
+  }, [loadHistory])
+
   return (
     <TooltipProvider>
       <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-background text-foreground">
@@ -56,18 +70,18 @@ export default function App() {
             <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-5 sm:px-6 sm:py-7">
               <div>
                 <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                  OpenAI-compatible TTS
+                  {t('app.kicker')}
                 </p>
                 <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Turn text into voice.
+                  {t('app.title')}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  Route speech requests across multiple providers, tune voice controls, and inspect the generated audio.
+                  {t('app.description')}
                 </p>
               </div>
 
-              <ComposerCard />
               <ResultCard />
+              <ComposerCard />
             </div>
           </main>
 
@@ -79,8 +93,8 @@ export default function App() {
         <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
           <SheetContent side="left" className="w-[min(92vw,380px)] gap-0 p-0 sm:max-w-sm">
             <SheetHeader className="border-b pr-12">
-              <SheetTitle>Settings</SheetTitle>
-              <SheetDescription>Configure the router connection and synthesis defaults.</SheetDescription>
+              <SheetTitle>{t('sheet.settingsTitle')}</SheetTitle>
+              <SheetDescription>{t('sheet.settingsDescription')}</SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               <SettingsPanel />
@@ -91,8 +105,8 @@ export default function App() {
         <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
           <SheetContent side="right" className="w-[min(92vw,380px)] gap-0 p-0 sm:max-w-sm">
             <SheetHeader className="border-b pr-12">
-              <SheetTitle>History</SheetTitle>
-              <SheetDescription>Reopen generated audio from this browser session.</SheetDescription>
+              <SheetTitle>{t('sheet.historyTitle')}</SheetTitle>
+              <SheetDescription>{t('sheet.historyDescription')}</SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1">
               <HistoryPanel />

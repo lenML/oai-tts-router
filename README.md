@@ -50,6 +50,9 @@ docker compose up -d
 
 启动之后看 [`http://localhost:17777/playground/`](http://localhost:17777/playground/) (端口换成你配置的)
 
+- 支持中、英、日、韩四种语言，自动识别浏览器语言，也可在界面切换。语言会写入 URL，如 `?lang=zh`。
+- 生成历史保存在浏览器 IndexedDB，默认最多 30 条，可在设置中调整。
+
 鉴权：如果配置了 apikey ，开启 playground 会弹窗用户名密码，其中用户名随便填，密码填 apikey
 
 ## Dev

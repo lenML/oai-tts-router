@@ -6,19 +6,23 @@ export interface ModelInfo {
   supported_voices?: string[]
 }
 
-export interface Generation {
+export interface PersistedGeneration {
   id: string
   model: string
   voice: string
   input: string
   responseFormat: string
   speed: number
-  audioUrl: string
+  blob: Blob
   waveform: number[] | null
   duration: number
   contentType: string
   requestBody: Record<string, unknown>
   createdAt: string
+}
+
+export interface Generation extends PersistedGeneration {
+  audioUrl: string
 }
 
 export interface SpeechResponse {

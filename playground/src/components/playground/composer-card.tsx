@@ -1,22 +1,18 @@
 import { useMemo } from 'react'
-import { Command, Sparkles, Square, WandSparkles } from 'lucide-react'
+import { ArrowUp, Command, Square } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { PromptControls } from '@/components/playground/prompt-controls'
 import { cn } from '@/lib/utils'
 import { usePlaygroundStore } from '@/store/playground-store'
 
-const QUICK_PROMPTS = [
-  { label: 'Narration', text: 'In a quiet studio, a voice begins to tell a story that has never been heard before.' },
-  { label: 'Assistant', text: 'Your request is ready. I have organized the key details and prepared the next steps.' },
-  { label: 'Chinese', text: '欢迎使用语音合成工作台。输入文本，选择模型，然后生成自然流畅的语音。' },
-]
-
 export function ComposerCard() {
+  const { t } = useTranslation()
   const input = usePlaygroundStore(state => state.input)
-  const model = usePlaygroundStore(state => state.model)
   const extraJson = usePlaygroundStore(state => state.extraJson)
   const isGenerating = usePlaygroundStore(state => state.isGenerating)
   const isDecoding = usePlaygroundStore(state => state.isDecoding)
@@ -43,13 +39,14 @@ export function ComposerCard() {
     if (!input.trim() || busy) return
     try {
       await submit()
-      toast.success('Speech generated')
+      toast.success(t('composer.generated'))
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.info('Generation cancelled')
+        toast.info(t('composer.cancelled'))
         return
       }
-      toast.error(error instanceof Error ? error.message : 'Generation failed')
+      const message = error instanceof Error ? error.message : t('composer.failed')
+      toast.error(`${t('composer.failed')}: ${message}`)
     }
   }
 
@@ -61,61 +58,45 @@ export function ComposerCard() {
   }
 
   return (
-    <Card className="overflow-visible shadow-sm">
-      <CardHeader className="border-b">
-        <CardTitle>Compose</CardTitle>
-        <CardAction className="flex items-center gap-2">
-          <Badge variant="outline">{model}</Badge>
-          {remaining < 0 && <Badge variant="destructive">Over limit</Badge>}
-        </CardAction>
-      </CardHeader>
-
+    <Card className="gap-0 overflow-visible rounded-3xl py-0 shadow-sm">
       <CardContent className="p-0">
         <Textarea
           value={input}
           onChange={event => setInput(event.target.value.slice(0, inputLimit))}
           onKeyDown={handleKeyDown}
-          placeholder="Write something worth listening to..."
-          className="min-h-52 resize-none rounded-none border-0 bg-transparent px-5 py-5 text-base leading-7 shadow-none focus-visible:ring-0 md:min-h-64"
+          placeholder={t('composer.placeholder')}
+          className="min-h-44 resize-none rounded-3xl border-0 bg-transparent px-5 py-5 text-base leading-7 shadow-none focus-visible:ring-0 md:min-h-52"
           maxLength={inputLimit}
+          aria-label={t('composer.placeholder')}
         />
       </CardContent>
 
-      <CardFooter className="flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          {QUICK_PROMPTS.map(prompt => (
-            <Button
-              key={prompt.label}
-              type="button"
-              variant="ghost"
-              size="xs"
-              className="text-muted-foreground"
-              onClick={() => setInput(prompt.text)}
-            >
-              <WandSparkles />
-              {prompt.label}
-            </Button>
-          ))}
-        </div>
+      <CardFooter className="flex-col items-stretch gap-2 rounded-b-3xl border-t-0 bg-transparent px-3 py-3 sm:flex-row sm:items-center">
+        <PromptControls />
 
-        <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
+          {remaining < 0 && <Badge variant="destructive">{t('composer.overLimit')}</Badge>}
           <span className={cn('font-mono text-[11px]', remaining < 0 ? 'text-destructive' : 'text-muted-foreground')}>
             {input.length.toLocaleString()} / {inputLimit.toLocaleString()}
           </span>
-          <span className="hidden items-center gap-1 text-[11px] text-muted-foreground md:flex">
+          <span className="hidden items-center gap-1 text-[11px] text-muted-foreground lg:flex">
             <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans">
-              <Command className="inline size-2.5" /> Enter
+              <Command className="inline size-2.5" /> {t('composer.enterHint')}
             </kbd>
           </span>
           {busy ? (
-            <Button variant="outline" onClick={cancelGeneration}>
+            <Button variant="outline" size="icon-lg" className="rounded-full" onClick={cancelGeneration} aria-label={t('composer.stop')}>
               <Square className="fill-current" />
-              Stop
             </Button>
           ) : (
-            <Button onClick={() => void generate()} disabled={!input.trim()}>
-              <Sparkles />
-              Generate
+            <Button
+              size="icon-lg"
+              className="rounded-full"
+              onClick={() => void generate()}
+              disabled={!input.trim()}
+              aria-label={t('composer.generate')}
+            >
+              <ArrowUp className="size-4" />
             </Button>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Clock3, History, Play, Search, Trash2, X } from 'lucide-react'
+import { Clock3, History, Loader2, Play, Search, Trash2, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,18 +9,11 @@ import { cn } from '@/lib/utils'
 import { formatDuration } from '@/lib/audio'
 import { usePlaygroundStore } from '@/store/playground-store'
 
-function relativeTime(isoDate: string): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(isoDate).getTime()) / 1000))
-  if (seconds < 60) return 'just now'
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
 export function HistoryPanel({ className }: { className?: string }) {
+  const { t, i18n } = useTranslation()
   const generations = usePlaygroundStore(state => state.generations)
+  const historyLoading = usePlaygroundStore(state => state.historyLoading)
+  const historyLimit = usePlaygroundStore(state => state.historyLimit)
   const activeGeneration = usePlaygroundStore(state => state.activeGeneration)
   const loadGeneration = usePlaygroundStore(state => state.loadGeneration)
   const removeGeneration = usePlaygroundStore(state => state.removeGeneration)
@@ -37,6 +31,14 @@ export function HistoryPanel({ className }: { className?: string }) {
     )
   }, [generations, query])
 
+  const formatCreatedAt = (isoDate: string): string =>
+    new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(isoDate))
+
   return (
     <div className={cn('flex h-full min-h-0 flex-col bg-background', className)}>
       <div className="border-b px-4 py-3">
@@ -44,18 +46,20 @@ export function HistoryPanel({ className }: { className?: string }) {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               <History className="size-4 text-muted-foreground" />
-              History
+              {t('history.title')}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">Recent generations in this browser.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('history.description')}</p>
           </div>
           <div className="flex items-center gap-1">
-            <Badge variant="secondary">{generations.length}</Badge>
+            <Badge variant="secondary">
+              {generations.length}/{historyLimit}
+            </Badge>
             {generations.length > 0 && (
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={clearHistory}
-                aria-label="Clear generation history"
+                onClick={() => void clearHistory()}
+                aria-label={t('history.clear')}
               >
                 <Trash2 />
               </Button>
@@ -67,7 +71,7 @@ export function HistoryPanel({ className }: { className?: string }) {
           <Input
             value={query}
             onChange={event => setQuery(event.target.value)}
-            placeholder="Search history"
+            placeholder={t('history.searchPlaceholder')}
             className="pl-8"
           />
         </div>
@@ -75,14 +79,21 @@ export function HistoryPanel({ className }: { className?: string }) {
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-2 p-3">
-          {filtered.length === 0 ? (
+          {historyLoading ? (
+            <div className="flex min-h-52 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="animate-spin" />
+              {t('history.loading')}
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex min-h-52 flex-col items-center justify-center px-6 text-center">
               <Clock3 className="mb-3 size-5 text-muted-foreground/50" />
-              <p className="text-sm font-medium">{generations.length === 0 ? 'No generations yet' : 'No matches'}</p>
+              <p className="text-sm font-medium">
+                {generations.length === 0 ? t('history.emptyTitle') : t('history.noMatchTitle')}
+              </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {generations.length === 0
-                  ? 'Generated audio will appear here. Files stay local to this browser session.'
-                  : 'Try a model, voice, or text search.'}
+                  ? t('history.emptyDescription')
+                  : t('history.noMatchDescription')}
               </p>
             </div>
           ) : (
@@ -111,9 +122,9 @@ export function HistoryPanel({ className }: { className?: string }) {
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                     onClick={event => {
                       event.stopPropagation()
-                      removeGeneration(generation.id)
+                      void removeGeneration(generation.id)
                     }}
-                    aria-label="Remove generation"
+                    aria-label={t('history.remove')}
                   >
                     <X />
                   </Button>
@@ -126,11 +137,11 @@ export function HistoryPanel({ className }: { className?: string }) {
                     <Badge variant="outline" className="max-w-32 truncate">
                       {generation.model}
                     </Badge>
-                    <span className="text-[10px] text-muted-foreground">{relativeTime(generation.createdAt)}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatCreatedAt(generation.createdAt)}</span>
                   </div>
                   <p className="line-clamp-2 text-xs leading-relaxed text-foreground/85">{generation.input}</p>
                   <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span>{generation.voice || 'default voice'}</span>
+                    <span>{generation.voice || t('history.defaultVoice')}</span>
                     <span>·</span>
                     <span>{formatDuration(generation.duration)}</span>
                     <span>·</span>

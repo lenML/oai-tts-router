@@ -1,11 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import i18n from '@/i18n'
 import { ApiError, createSpeech, fetchModels } from '@/lib/api'
 import { decodeWaveform } from '@/lib/audio'
+import {
+  clearHistoryRecords,
+  deleteHistoryRecord,
+  loadHistoryRecords,
+  saveHistoryRecord,
+  toGeneration,
+} from '@/lib/history-db'
 import type { ConnectionState, Generation, ModelInfo } from '@/types'
 
 const DEFAULT_BASE_URL = `${window.location.origin}/v1`
-const MAX_HISTORY = 30
+const DEFAULT_HISTORY_LIMIT = 30
 
 const FALLBACK_MODELS: ModelInfo[] = [
   { id: 'google-translate', owned_by: 'google', supported_voices: [] },
@@ -69,6 +77,9 @@ interface PlaygroundState {
   input: string
 
   generations: Generation[]
+  historyLimit: number
+  historyLoading: boolean
+  historyHydrated: boolean
   activeGeneration: Generation | null
   isGenerating: boolean
   isDecoding: boolean
@@ -92,14 +103,16 @@ interface PlaygroundState {
   setPlaying: (playing: boolean) => void
   setPlaybackTime: (currentTime: number, duration?: number) => void
   setPlaybackDuration: (duration: number) => void
+  setHistoryLimit: (limit: number) => Promise<void>
+  loadHistory: () => Promise<void>
 
   fetchModels: () => Promise<void>
   submit: () => Promise<void>
   cancelGeneration: () => void
   clearResult: () => void
   loadGeneration: (id: string) => void
-  removeGeneration: (id: string) => void
-  clearHistory: () => void
+  removeGeneration: (id: string) => Promise<void>
+  clearHistory: () => Promise<void>
 }
 
 export const usePlaygroundStore = create<PlaygroundState>()(
@@ -124,6 +137,9 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       input: 'The quick brown fox jumps over the lazy dog.',
 
       generations: [],
+      historyLimit: DEFAULT_HISTORY_LIMIT,
+      historyLoading: false,
+      historyHydrated: false,
       activeGeneration: null,
       isGenerating: false,
       isDecoding: false,
@@ -160,6 +176,48 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         }),
       setPlaybackDuration: playbackDuration => set({ playbackDuration }),
 
+      setHistoryLimit: async limit => {
+        const normalizedLimit = Math.max(1, Math.min(200, Math.round(limit)))
+        set({ historyLimit: normalizedLimit })
+
+        try {
+          const records = await loadHistoryRecords(normalizedLimit)
+          const retainedIds = new Set(records.map(record => record.id))
+          const removed = get().generations.filter(generation => !retainedIds.has(generation.id))
+          removed.forEach(revokeGeneration)
+          set(state => ({
+            generations: state.generations.filter(generation => retainedIds.has(generation.id)),
+          }))
+        } catch {
+          const removed = get().generations.slice(normalizedLimit)
+          removed.forEach(revokeGeneration)
+          set(state => ({ generations: state.generations.slice(0, normalizedLimit) }))
+        }
+      },
+
+      loadHistory: async () => {
+        if (get().historyLoading || get().historyHydrated) return
+        set({ historyLoading: true })
+
+        try {
+          const records = await loadHistoryRecords(get().historyLimit)
+          const loaded = records.map(toGeneration)
+          const existing = get().generations
+          const loadedIds = new Set(loaded.map(generation => generation.id))
+          set({
+            generations: [...existing, ...loaded.filter(generation => !loadedIds.has(generation.id))].slice(
+              0,
+              get().historyLimit,
+            ),
+            historyHydrated: true,
+          })
+        } catch {
+          set({ historyHydrated: true })
+        } finally {
+          set({ historyLoading: false })
+        }
+      },
+
       fetchModels: async () => {
         const { baseUrl, apiKey } = get()
         set({ connection: 'loading', modelsError: '' })
@@ -188,14 +246,14 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         const state = get()
         const trimmedInput = state.input.trim()
         if (!trimmedInput) {
-          throw new Error('Enter text to synthesize.')
+          throw new Error(i18n.t('error.emptyInput'))
         }
 
         let extra: Record<string, unknown> = {}
         if (state.extraJson.trim()) {
           const parsed: unknown = JSON.parse(state.extraJson)
           if (!isRecord(parsed)) {
-            throw new Error('Advanced params must be a JSON object.')
+            throw new Error(i18n.t('error.invalidExtra'))
           }
           extra = parsed
         }
@@ -230,6 +288,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
             responseFormat: state.responseFormat,
             speed: state.speed,
             audioUrl,
+            blob: response.blob,
             waveform: decoded?.waveform ?? null,
             duration: decoded?.duration ?? 0,
             contentType: response.contentType,
@@ -238,8 +297,14 @@ export const usePlaygroundStore = create<PlaygroundState>()(
           }
 
           const generations = [generation, ...get().generations]
-          const retained = generations.slice(0, MAX_HISTORY)
-          generations.slice(MAX_HISTORY).forEach(revokeGeneration)
+          const retained = generations.slice(0, get().historyLimit)
+          generations.slice(get().historyLimit).forEach(revokeGeneration)
+
+          try {
+            await saveHistoryRecord(generation, get().historyLimit)
+          } catch {
+            // Persistence failure should not discard a successfully generated file.
+          }
 
           set({
             generations: retained,
@@ -284,7 +349,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         })
       },
 
-      removeGeneration: id => {
+      removeGeneration: async id => {
         const state = get()
         const generation = state.generations.find(item => item.id === id)
         if (!generation) return
@@ -298,9 +363,15 @@ export const usePlaygroundStore = create<PlaygroundState>()(
           playbackDuration: activeGeneration ? state.playbackDuration : 0,
           playProgress: activeGeneration ? state.playProgress : 0,
         })
+
+        try {
+          await deleteHistoryRecord(id)
+        } catch {
+          // The in-memory deletion remains effective if IndexedDB is unavailable.
+        }
       },
 
-      clearHistory: () => {
+      clearHistory: async () => {
         get().generations.forEach(revokeGeneration)
         set({
           generations: [],
@@ -310,6 +381,12 @@ export const usePlaygroundStore = create<PlaygroundState>()(
           playbackDuration: 0,
           playProgress: 0,
         })
+
+        try {
+          await clearHistoryRecords()
+        } catch {
+          // The in-memory history remains cleared if IndexedDB is unavailable.
+        }
       },
     }),
     {
@@ -326,6 +403,7 @@ export const usePlaygroundStore = create<PlaygroundState>()(
         instructions: state.instructions,
         extraJson: state.extraJson,
         input: state.input,
+        historyLimit: state.historyLimit,
       }),
     },
   ),

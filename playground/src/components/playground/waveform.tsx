@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface WaveformProps {
   values: number[]
@@ -41,6 +42,7 @@ function drawWaveform(canvas: HTMLCanvasElement, values: number[], progress: num
 }
 
 export function Waveform({ values, progress, onSeek }: WaveformProps) {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function Waveform({ values, progress, onSeek }: WaveformProps) {
       className="h-36 w-full cursor-crosshair touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
       role="slider"
       tabIndex={0}
-      aria-label="Audio position"
+      aria-label={t('result.audioPosition')}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(progress * 100)}

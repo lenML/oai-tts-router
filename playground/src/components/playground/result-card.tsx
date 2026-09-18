@@ -13,6 +13,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ import { audioExtension, downloadAudio, formatDuration } from '@/lib/audio'
 import { usePlaygroundStore } from '@/store/playground-store'
 
 function ResultPlaceholder() {
+  const { t } = useTranslation()
   const isLoading = usePlaygroundStore(state => state.isGenerating || state.isDecoding)
 
   return (
@@ -42,19 +44,17 @@ function ResultPlaceholder() {
       {isLoading ? (
         <>
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Synthesizing audio...</p>
+          <p className="text-sm text-muted-foreground">{t('result.synthesizing')}</p>
         </>
       ) : (
         <>
           <div>
-            <p className="text-sm font-medium">No audio generated yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Choose a model, write a prompt, then press Generate.
-            </p>
+            <p className="text-sm font-medium">{t('result.emptyTitle')}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t('result.emptyDescription')}</p>
           </div>
           <Badge variant="secondary">
             <Sparkles />
-            Ready
+            {t('result.ready')}
           </Badge>
         </>
       )}
@@ -63,6 +63,7 @@ function ResultPlaceholder() {
 }
 
 export function ResultCard() {
+  const { t } = useTranslation()
   const generation = usePlaygroundStore(state => state.activeGeneration)
   const currentTime = usePlaygroundStore(state => state.currentTime)
   const duration = usePlaygroundStore(state => state.playbackDuration)
@@ -107,13 +108,13 @@ export function ResultCard() {
       void audio.play().catch(error => {
         setPlaying(false)
         if (error instanceof Error && error.name !== 'AbortError') {
-          toast.error('Browser playback failed. The generated file can still be downloaded.')
+          toast.error(t('result.playbackFailed'))
         }
       })
     } else {
       audio.pause()
     }
-  }, [generation, isPlaying, setPlaying])
+  }, [generation, isPlaying, setPlaying, t])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -141,7 +142,7 @@ export function ResultCard() {
   const copyRequest = async () => {
     if (!generation) return
     await navigator.clipboard.writeText(JSON.stringify(generation.requestBody, null, 2))
-    toast.success('Request JSON copied')
+    toast.success(t('result.copied'))
   }
 
   const download = () => {
@@ -157,12 +158,12 @@ export function ResultCard() {
   return (
     <Card className="relative shadow-sm">
       <CardHeader className="border-b">
-        <CardTitle>Output</CardTitle>
+        <CardTitle>{t('result.title')}</CardTitle>
         <CardAction className="flex items-center gap-2">
           {(isGenerating || isDecoding) && (
             <Badge variant="outline">
               <Loader2 className="animate-spin" />
-              {isDecoding ? 'Decoding' : 'Generating'}
+              {isDecoding ? t('result.decoding') : t('result.generating')}
             </Badge>
           )}
           {generation && <Badge variant="secondary">{generation.responseFormat.toUpperCase()}</Badge>}
@@ -201,14 +202,14 @@ export function ResultCard() {
                   size="icon-lg"
                   className="rounded-full"
                   onClick={() => setPlaying(!isPlaying)}
-                  aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                  aria-label={isPlaying ? t('result.pause') : t('result.play')}
                 >
                   {isPlaying ? <Pause className="fill-current" /> : <Play className="fill-current" />}
                 </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => skip(-5)} aria-label="Rewind 5 seconds">
+                <Button variant="ghost" size="icon-sm" onClick={() => skip(-5)} aria-label={t('result.rewind')}>
                   <RotateCcw />
                 </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => skip(5)} aria-label="Skip 5 seconds">
+                <Button variant="ghost" size="icon-sm" onClick={() => skip(5)} aria-label={t('result.skip')}>
                   <RotateCw />
                 </Button>
                 <span className="ml-1 font-mono text-xs text-muted-foreground">
@@ -217,7 +218,7 @@ export function ResultCard() {
               </div>
 
               <div className="flex flex-1 items-center gap-2 sm:justify-end">
-                <Button variant="ghost" size="icon-sm" onClick={() => setMuted(!muted)} aria-label="Toggle mute">
+                <Button variant="ghost" size="icon-sm" onClick={() => setMuted(!muted)} aria-label={t('result.mute')}>
                   {muted || volume === 0 ? <VolumeX /> : <Volume2 />}
                 </Button>
                 <Slider
@@ -230,14 +231,14 @@ export function ResultCard() {
                     setVolume(nextVolume)
                     if (nextVolume > 0) setMuted(false)
                   }}
-                  aria-label="Volume"
+                  aria-label={t('result.mute')}
                 />
                 <Separator orientation="vertical" className="mx-1 h-5" />
                 <Button variant="outline" size="sm" onClick={download}>
                   <Download />
-                  Download
+                  {t('result.download')}
                 </Button>
-                <Button variant="ghost" size="icon-sm" onClick={clearResult} aria-label="Clear current output">
+                <Button variant="ghost" size="icon-sm" onClick={clearResult} aria-label={t('result.clear')}>
                   <Trash2 />
                 </Button>
               </div>
@@ -257,13 +258,13 @@ export function ResultCard() {
         <CardFooter className="justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Switch checked={autoplay} onCheckedChange={setAutoplay} size="sm" id="autoplay" />
-            <label htmlFor="autoplay">Autoplay new generations</label>
+            <label htmlFor="autoplay">{t('result.autoplay')}</label>
           </div>
           <Collapsible>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="xs">
                 <Clipboard />
-                Request
+                {t('result.request')}
                 <ChevronDown />
               </Button>
             </CollapsibleTrigger>
@@ -274,7 +275,7 @@ export function ResultCard() {
                 </pre>
                 <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => void copyRequest()}>
                   <Clipboard />
-                  Copy JSON
+                  {t('result.copyJson')}
                 </Button>
               </div>
             </CollapsibleContent>

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit && pnpm --dir playground exec tsc -b --force --pretty false",
     "lint": "eslint . && pnpm --dir playground lint",
     "lint:fix": "eslint . --fix",
-    "test": "vitest run",
+    "test": "vitest run && pnpm --dir playground test",
     "dev": "concurrently -k -n api,ui -c blue,magenta \"pnpm dev:server\" \"pnpm dev:playground\"",
     "dev:server": "tsx watch src/main.ts",
     "dev:playground": "pnpm --dir playground dev"
