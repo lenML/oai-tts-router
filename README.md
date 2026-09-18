@@ -1,6 +1,5 @@
 <img width="1280" height="800" alt="image (1)" src="https://github.com/user-attachments/assets/29f4c71d-0863-4bfa-aad3-e32c09e2e75c" />
 
-
 # oai-tts-router
 
 a **Free** TTS Router — OpenAI TTS 兼容代理，聚合多种免费 TTS 后端。
@@ -31,9 +30,9 @@ docker compose up -d
 
 目前暂无公开 endpoint，列表等待添加。公开服务可能限流、失效或下线，不建议提交敏感内容；如需稳定使用，请自行部署。
 
-| 名称 | Base URL | 维护者 | 状态 | 备注 |
-| ---- | -------- | ------ | ---- | ---- |
-| _暂无_ | - | - | 等待添加 | 欢迎提交 PR 添加 |
+| 名称   | Base URL | 维护者 | 状态     | 备注             |
+| ------ | -------- | ------ | -------- | ---------------- |
+| _暂无_ | -        | -      | 等待添加 | 欢迎提交 PR 添加 |
 
 ## Provider
 
@@ -86,7 +85,7 @@ GitHub Pages 只托管静态前端，实际语音请求会直接从浏览器发�
 ```bash
 pnpm install
 pnpm dev
-
+```
 
 `pnpm dev` starts the API and Vite Playground together:
 
