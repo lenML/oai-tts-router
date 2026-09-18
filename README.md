@@ -27,6 +27,14 @@ docker compose up -d
 
 可用模型和对应 voices 通过 `GET /v1/models` 获取。详见各模型文档。
 
+## 公开 Endpoint
+
+目前暂无公开 endpoint，列表等待添加。公开服务可能限流、失效或下线，不建议提交敏感内容；如需稳定使用，请自行部署。
+
+| 名称 | Base URL | 维护者 | 状态 | 备注 |
+| ---- | -------- | ------ | ---- | ---- |
+| _暂无_ | - | - | 等待添加 | 欢迎提交 PR 添加 |
+
 ## Provider
 
 | model              | 后端                          | 简介                                                                 | 文档                                        |
@@ -54,7 +62,13 @@ docker compose up -d
 - 支持中、英、日、韩四种语言，自动识别浏览器语言，也可在界面切换。语言会写入 URL，如 `?lang=zh`。
 - 生成历史保存在浏览器 IndexedDB，默认最多 30 条，可在设置中调整。
 
-### GitHub Pages
+### 使用托管 Playground
+
+本地部署完成后，可以直接打开 [oai-tts-router Playground](https://lenml.github.io/oai-tts-router/) 测试和使用。打开设置，将 `Base URL` 填为你的服务地址：同机服务可使用 `http://localhost:17777/v1`，远程服务请填写公开 HTTPS 地址。
+
+GitHub Pages 只托管静态前端，实际语音请求会直接从浏览器发送到你填写的 endpoint；请确保该服务允许浏览器跨域访问。
+
+### 部署自己的 Playground
 
 仓库包含 `.github/workflows/deploy-playground.yml`，推送到 `main` 后会自动构建并部署 `playground/`。
 
