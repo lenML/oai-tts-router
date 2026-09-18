@@ -68,18 +68,6 @@ export default function App() {
           <main className="relative min-h-0 overflow-y-auto">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-[size:32px_32px] opacity-[0.04]" />
             <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-5 sm:px-6 sm:py-7">
-              <div>
-                <p className="text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                  {t('app.kicker')}
-                </p>
-                <h1 className="mt-1 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
-                  {t('app.title')}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                  {t('app.description')}
-                </p>
-              </div>
-
               <ResultCard />
               <ComposerCard />
             </div>
