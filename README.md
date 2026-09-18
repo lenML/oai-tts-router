@@ -65,7 +65,17 @@ docker compose up -d
 
 本地部署完成后，可以直接打开 [oai-tts-router Playground](https://lenml.github.io/oai-tts-router/) 测试和使用。打开设置，将 `Base URL` 填为你的服务地址：同机服务可使用 `http://localhost:17777/v1`，远程服务请填写公开 HTTPS 地址。
 
-GitHub Pages 只托管静态前端，实际语音请求会直接从浏览器发送到你填写的 endpoint；请确保该服务允许浏览器跨域访问。
+GitHub Pages 只托管静态前端，实际语音请求会直接从浏览器发送到你填写的 endpoint。后端需允许该 Origin，例如在 `config.json` 中配置：
+
+```json
+{
+  "cors": {
+    "origin": ["https://lenml.github.io", "http://localhost:5173"]
+  }
+}
+```
+
+也可设置环境变量 `CORS_ORIGIN=https://lenml.github.io,http://localhost:5173`。默认值为 `["*"]`，允许全部 Origin。
 
 ### 部署自己的 Playground
 

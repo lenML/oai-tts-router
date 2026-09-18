@@ -16,10 +16,15 @@ import { fileURLToPath } from 'node:url';
 
 // ── Types ───────────────────────────────────────────────────
 
+export interface CorsConfig {
+  origin: string[];
+}
+
 export interface AppConfig {
   port: number;
   log_level: string;
   api_keys: string[];
+  cors: CorsConfig;
   proxy: {
     http?: string;
     https?: string;
@@ -42,6 +47,7 @@ const DEFAULTS: AppConfig = {
   port: 3000,
   log_level: 'info',
   api_keys: [],
+  cors: { origin: ['*'] },
   proxy: {},
   cache: {},
   providers: {},
@@ -78,6 +84,7 @@ function merge_env(file_cfg: Partial<AppConfig>): AppConfig {
   const cfg: AppConfig = {
     ...DEFAULTS,
     ...file_cfg,
+    cors: { ...DEFAULTS.cors, ...file_cfg.cors },
     proxy: { ...DEFAULTS.proxy, ...file_cfg.proxy },
     cache: { ...DEFAULTS.cache, ...file_cfg.cache },
     providers: { ...DEFAULTS.providers, ...file_cfg.providers },
@@ -89,6 +96,12 @@ function merge_env(file_cfg: Partial<AppConfig>): AppConfig {
   if (process.env['LOG_LEVEL']) cfg.log_level = process.env['LOG_LEVEL'];
   if (process.env['API_KEY']) {
     cfg.api_keys = process.env['API_KEY']
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+  }
+  if (process.env['CORS_ORIGIN']) {
+    cfg.cors.origin = process.env['CORS_ORIGIN']
       .split(',')
       .map(s => s.trim())
       .filter(s => s.length > 0);

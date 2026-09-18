@@ -9,6 +9,9 @@
 {
   "port": 4567,
   "log_level": "info",
+  "cors": {
+    "origin": ["https://lenml.github.io", "http://localhost:5173"]
+  },
   "api_keys": ["sk-1234"],
   "proxy": {
     "http": "http://127.0.0.1:10808",
@@ -33,6 +36,7 @@
 | --- | --- | --- | --- |
 | `port` | number | `3000` | 监听端口 |
 | `log_level` | string | `"info"` | debug / info / warn / error |
+| `cors.origin` | string[] | `["*"]` | 允许跨域访问的 Origin 列表，`["*"]` 允许全部，空数组禁止跨域 |
 | `api_keys` | string[] | `[]` | 鉴权 key 列表，空=无鉴权 |
 | `proxy.http` | string | - | 出站 HTTP 代理 |
 | `proxy.https` | string | - | 出站 HTTPS 代理 |
@@ -60,6 +64,20 @@
 
 支持多个 key：`config.json` 用数组，环境变量用逗号分隔（如 `API_KEY=sk-key1,sk-key2`）。
 
+## CORS
+
+默认允许全部 Origin。生产环境建议只允许明确的前端地址：
+
+```json
+{
+  "cors": {
+    "origin": ["https://lenml.github.io", "http://localhost:5173"]
+  }
+}
+```
+
+Origin 不包含末尾 `/`。修改后需重启服务。GitHub Pages 前端可加入 `https://lenml.github.io`，本地 Vite 前端可加入 `http://localhost:5173`。
+
 ## .env / 环境变量
 
 环境变量优先级高于 config.json：
@@ -70,6 +88,7 @@
 | `API_KEY` | - | 鉴权 key，逗号分隔。配置后 API 路由使用 Bearer 鉴权，Playground 使用 Basic 鉴权 |
 | `TTS_CACHE_SIZE` | `0` | 如 `"100mb"`，`"0"` 禁用 |
 | `LOG_LEVEL` | `info` | 日志级别 |
+| `CORS_ORIGIN` | `*` | 允许的 Origin，逗号分隔，如 `https://lenml.github.io,http://localhost:5173` |
 | `HTTP_PROXY` | - | 出站 HTTP 代理 |
 | `HTTPS_PROXY` | - | 出站 HTTPS 代理 |
 | `CONFIG_PATH` | - | 自定义 config.json 路径 |

@@ -26,6 +26,7 @@ services:
       - API_KEY=${API_KEY:-}
       - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
       # - HTTP_PROXY=http://host.docker.internal:10808
       # - HTTPS_PROXY=http://host.docker.internal:10808
     # Mount config.json from host (uncomment and create ./config.json first)
@@ -52,6 +53,7 @@ services:
       - API_KEY=${API_KEY:-}
       - TTS_CACHE_SIZE=${TTS_CACHE_SIZE:-0}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - VITE_PROXY_TARGET=http://127.0.0.1:17777
     volumes:
       - .:/app

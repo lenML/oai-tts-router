@@ -40,7 +40,7 @@ function main(): void {
     models: registry.get_all_models(),
   });
 
-  const app = create_app(registry);
+  const app = create_app(registry, config.cors);
 
   app.listen(config.port, () => {
     logger.info('server started', { port: config.port });
