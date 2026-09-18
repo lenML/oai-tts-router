@@ -1,4 +1,5 @@
-<img width="1280" height="800" alt="playground screenshot" src="https://github.com/user-attachments/assets/273dfdb5-e5d3-48c6-a30b-be272b73e922" />
+<img width="1280" height="800" alt="image (1)" src="https://github.com/user-attachments/assets/29f4c71d-0863-4bfa-aad3-e32c09e2e75c" />
+
 
 # oai-tts-router
 
